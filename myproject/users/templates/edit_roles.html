@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактирование ролей{% endblock %}
+
+{% block content %}
+<style>
+
+        :root {
+            --primary-color: #3b82f6;
+            --primary-light: #93c5fd;
+            --gray-light: #f3f4f6;
+            --gray-medium: #9ca3af;
+            --gray-dark: #4b5563;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Шапка компании */
+        .company-header {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .company-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        .company-description {
+            color: var(--gray-dark);
+            margin-bottom: 16px;
+            max-width: 80%;
+        }
+
+        .company-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .tech-lead, .creation-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-dark);
+            font-size: 14px;
+        }
+
+        .tech-lead-name {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .date-label {
+            background-color: var(--gray-light);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .action-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-edit {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-light);
+        }
+
+        .btn-edit:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .btn-delete {
+            text-decoration: none
+            background-color: white;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+        }
+
+        .btn-delete:hover {
+            background-color: #fee2e2;
+        }
+
+        /* Секция пользователей */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .role-group {
+            margin-bottom: 24px;
+        }
+
+        .role-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-dark);
+            margin-bottom: 12px;
+        }
+
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .user-card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 16px;
+            border: 1px solid var(--gray-light);
+            transition: transform 0.2s ease;
+        }
+
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            color: var(--gray-medium);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .user-position {
+            font-size: 13px;
+            background-color: var(--gray-light);
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .user-btn {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--gray-light);
+            color: var(--gray-dark);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .user-btn:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        /* Секция должностей и чек-листов */
+        .positions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .position-item {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 16px;
+        }
+
+        .position-name {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .checklists {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-left: 8px;
+        }
+
+        .checklist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background-color: var(--gray-light);
+            border-radius: var(--radius);
+        }
+
+        .checklist-name {
+            font-weight: 500;
+        }
+
+        .btn-view {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-view:hover {
+            background-color: #2563eb;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .action-buttons {
+                position: static;
+                margin-top: 16px;
+            }
+
+            .company-description {
+                max-width: 100%;
+            }
+
+            .users-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .company-meta {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .users-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .checklist-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .user-actions {
+                flex-direction: column;
+            }
+        }
+</style>
+<div class="container">
+    <div class="card">
+        <h1>Редактирование ролей в компании: {{ company.name }}</h1>
+
+        <!-- Сообщения об ошибках и успехах -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <h3>Эксперты</h3>
+        <div class="users-grid">
+            {% for user in experts %}
+                <div class="user-card">
+                    <div class="user-name">{{ user.username }}</div>
+                    <div class="user-role">
+                        <label for="role_{{ user.id }}">Новая роль:</label>
+                        <form method="post" class="role-form">
+                            {% csrf_token %}
+                            <select name="role_{{ user.id }}" id="role_{{ user.id }}">
+                                {% for role_value, role_label in role_choices %}
+                                    <option value="{{ role_value }}" {% if user.role == role_value %}selected{% endif %}>{{ role_label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="user-btn">Изменить роль</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h3>Методисты</h3>
+        <div class="users-grid">
+            {% for user in methodists %}
+                <div class="user-card">
+                    <div class="user-name">{{ user.username }}</div>
+                    <div class="user-role">
+                        <label for="role_{{ user.id }}">Новая роль:</label>
+                        <form method="post" class="role-form">
+                            {% csrf_token %}
+                            <select name="role_{{ user.id }}" id="role_{{ user.id }}">
+                                {% for role_value, role_label in role_choices %}
+                                    <option value="{{ role_value }}" {% if user.role == role_value %}selected{% endif %}>{{ role_label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="user-btn">Изменить роль</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<a href="{% url 'company_detail' company.id %}" class="user-btn">← Назад</a>
+{% endblock %}

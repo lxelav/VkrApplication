@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-light: #93c5fd;
+        --gray-light: #f3f4f6;
+        --gray-medium: #9ca3af;
+        --gray-dark: #4b5563;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 8px;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .card {
+        background-color: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .form-header {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .form-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--gray-dark);
+    }
+
+    /* Стили для полей формы */
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--gray-medium);
+        border-radius: var(--radius);
+        font-size: 16px;
+        transition: border-color 0.2s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        padding-right: 40px;
+    }
+
+    /* Стили для кнопки */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        border-radius: var(--radius);
+        border: none;
+        font-weight: 500;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #2563eb;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+        margin-top: 16px;
+    }
+
+    .back-link:hover {
+        color: #2563eb;
+        text-decoration: underline;
+    }
+
+    /* Стили для отображения ошибок */
+    .errorlist {
+        list-style: none;
+        color: #ef4444;
+        margin: 4px 0 0;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .container {
+            padding: 16px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-title {
+            font-size: 24px;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="card">
+        <div class="form-header">
+            <h1 class="form-title">{{ title }}</h1>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Логин:</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password1.id_for_label }}">Пароль:</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password1.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password2.id_for_label }}">Подтверждение пароля:</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password2.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.role.id_for_label }}">Роль:</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.role.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.company.id_for_label }}">Основное предприятие:</label>
+                {{ form.company }}
+                {% if form.company.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.company.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.companies.id_for_label }}">Дополнительные предприятия:</label>
+                {{ form.companies }}
+                {% if form.companies.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.companies.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">➕ Создать пользователя</button>
+            </div>
+        </form>
+
+        <a href="{% url 'users_list' %}" class="back-link">← Назад к списку</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Список пользователей{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Список пользователей</h1>
+
+  <div class="card">
+    <div class="scroll-area">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Логин</th>
+            <th>Роль</th>
+            <th>Предприятие(я)</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>
+              {% if user.role == 'admin' %}
+                <span class="role-badge admin">Администратор</span>
+              {% elif user.role == 'tech_lead' %}
+                <span class="role-badge manager">Тех руководитель</span>
+              {% elif user.role == 'methodist' %}
+                <span class="role-badge user">Методист</span>
+              {% else %}
+                <span class="role-badge user">Эксперт</span>
+              {% endif %}
+            </td>
+            <td>{{ user.get_company_display|default:"Не назначено" }}</td>
+            <td class="actions-cell">
+              <a href="{% url 'user_edit' user.id %}" class="btn btn-primary btn-sm">
+                Редактировать
+              </a>
+              <a href="{% url 'user_delete' user.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Вы уверены, что хотите удалить пользователя {{ user.username }}?');">
+                Удалить
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="empty-row">
+              <div class="empty-message">
+                <p>Нет пользователей.</p>
+                <p>Создайте нового пользователя, чтобы начать работу.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a href="{% url 'user_create' %}" class="btn btn-primary">
+      <span class="mr-2">+</span> Создать пользователя
+    </a>
+  </div>
+</div>
+
+<style>
+  /* Общие стили */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+    color: #333;
+    background-color: #f9fafb;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  h1, h2, h3, h4 {
+    margin-bottom: 1rem;
+    color: #2563eb;
+  }
+
+  h1 {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0;
+  }
+
+  /* Карточки */
+  .card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  /* Таблица */
+  .user-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .user-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #4b5563;
+  }
+
+  .user-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .user-table tr:hover {
+    background-color: #f9fafb;
+  }
+
+  .actions-cell {
+    white-space: nowrap;
+  }
+
+  .empty-row {
+    text-align: center;
+    padding: 30px 0;
+  }
+
+  .empty-message {
+    color: #6b7280;
+  }
+
+  .empty-message p:first-child {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Кнопки */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+
+  .btn-danger {
+    background-color: #ef4444;
+    color: white;
+    margin-left: 0.5rem;
+  }
+
+  .btn-danger:hover {
+    background-color: #dc2626;
+  }
+
+  /* Утилиты */
+  .flex {
+    display: flex;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .justify-between {
+    justify-content: space-between;
+  }
+
+  .mt-4 {
+    margin-top: 1rem;
+  }
+
+  .mr-2 {
+    margin-right: 0.5rem;
+  }
+
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
+
+  /* Специфичные стили */
+  .scroll-area {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  .role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .role-badge.admin {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .role-badge.manager {
+    background-color: #d1fae5;
+    color: #047857;
+  }
+
+  .role-badge.user {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .user-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .actions {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .actions-cell {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .actions-cell .btn {
+      margin-left: 0;
+      margin-bottom: 0.5rem;
+    }
+  }
+</style>
+{% endblock %}

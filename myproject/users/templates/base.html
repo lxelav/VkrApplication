@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Главная{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* Сброс стилей и базовые настройки */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f0f4ff;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Стили шапки - используем !important для предотвращения переопределения */
+        header {
+            background-color: #003366 !important;
+            color: white !important;
+            padding: 10px 20px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            width: 100% !important;
+        }
+
+        nav {
+            display: flex !important;
+            gap: 15px !important;
+            flex-wrap: wrap !important;
+        }
+
+        nav a {
+            color: white !important;
+            text-decoration: none !important;
+            padding: 5px 10px !important;
+            border-radius: 5px !important;
+            transition: background-color 0.3s !important;
+            white-space: nowrap !important;
+        }
+
+        nav a:hover {
+            background-color: #00509e !important;
+        }
+
+        /* Исправленный блок информации о пользователе */
+        .user-info {
+            display: flex !important;
+            align-items: center !important;
+            gap: 15px !important;
+            color: #e0e0e0 !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .user-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+        }
+
+        .logout-btn {
+            background-color: #e0e0e0 !important;
+            color: #003366 !important;
+            border: none !important;
+            padding: 5px 10px !important;
+            border-radius: 5px !important;
+            cursor: pointer !important;
+            font-size: 14px !important;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0c0c0 !important;
+        }
+
+        .container {
+            padding: 20px !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+        }
+
+        .messages {
+            list-style: none !important;
+            padding: 10px !important;
+            margin-bottom: 20px !important;
+        }
+
+        .messages li.success {
+            background-color: #d4edda !important;
+            border: 1px solid #c3e6cb !important;
+            color: #155724 !important;
+            padding: 10px !important;
+            margin-bottom: 10px !important;
+            border-radius: 4px !important;
+        }
+
+        .messages li.error {
+            background-color: #f8d7da !important;
+            border: 1px solid #f5c6cb !important;
+            color: #721c24 !important;
+            padding: 10px !important;
+            margin-bottom: 10px !important;
+            border-radius: 4px !important;
+        }
+
+        /* Мобильное меню */
+        .menu-toggle {
+            display: none !important;
+            background: none !important;
+            border: none !important;
+            color: white !important;
+            font-size: 24px !important;
+            cursor: pointer !important;
+        }
+
+        /* Медиа-запросы для адаптивности */
+        @media screen and (max-width: 768px) {
+            header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+
+            .menu-toggle {
+                display: block !important;
+                position: absolute !important;
+                top: 10px !important;
+                right: 20px !important;
+            }
+
+            nav {
+                display: none !important;
+                flex-direction: column !important;
+                width: 100% !important;
+                margin-top: 10px !important;
+            }
+
+            nav.active {
+                display: flex !important;
+            }
+
+            nav a {
+                padding: 10px !important;
+                width: 100% !important;
+            }
+
+            .user-info {
+                margin-top: 15px !important;
+                width: 100% !important;
+                justify-content: flex-start !important;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .user-info {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+
+            .user-info form {
+                margin-top: 10px !important;
+                width: 100% !important;
+            }
+
+            .logout-btn {
+                width: 100% !important;
+                padding: 8px !important;
+            }
+
+            .container {
+                padding: 10px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <button class="menu-toggle" id="menuToggle">
+        <span class="material-icons">menu</span>
+    </button>
+
+    <nav id="mainNav">
+        {% for item in menu_items %}
+            <a href="{{ item.href }}">{{ item.name }}</a>
+        {% endfor %}
+    </nav>
+
+    <div class="user-info">
+        <div class="user-item">
+            <span class="material-icons">person</span>
+            <span>{{ user.username }}</span>
+        </div>
+        <div class="user-item">
+            <span class="material-icons">star</span>
+            <span>{{ user.role }}</span>
+        </div>
+        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button class="logout-btn" type="submit">Выйти</button>
+        </form>
+    </div>
+</header>
+
+<div class="container">
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script>
+    // JavaScript для мобильного меню
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menuToggle');
+        const mainNav = document.getElementById('mainNav');
+
+        menuToggle.addEventListener('click', function() {
+            mainNav.classList.toggle('active');
+
+            // Изменение иконки меню
+            const icon = menuToggle.querySelector('.material-icons');
+            if (mainNav.classList.contains('active')) {
+                icon.textContent = 'close';
+            } else {
+                icon.textContent = 'menu';
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

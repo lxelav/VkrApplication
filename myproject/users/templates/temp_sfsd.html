@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3b82f6">
+    <title>Результаты оценки чек-листа</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Основные стили */
+      :root {
+        --primary: #3b82f6;
+        --primary-dark: #2563eb;
+        --primary-light: #dbeafe;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --red-100: #fee2e2;
+        --red-500: #ef4444;
+        --red-600: #dc2626;
+        --red-700: #b91c1c;
+        --yellow-100: #fef3c7;
+        --yellow-300: #fcd34d;
+        --yellow-400: #fbbf24;
+        --green-100: #d1fae5;
+        --green-500: #10b981;
+        --green-600: #059669;
+        --green-700: #047857;
+        --border-radius: 0.5rem;
+        --header-height: 60px;
+        --footer-height: 60px;
+        --transition-speed: 0.3s;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        line-height: 1.5;
+        color: var(--gray-800);
+        background-color: #fff;
+        padding-bottom: var(--footer-height);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: var(--primary);
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Компоненты */
+      .card {
+        background-color: #fff;
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--gray-200);
+      }
+
+      .tabs {
+        display: flex;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+
+      .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-size: 0.875rem;
+        touch-action: manipulation;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--gray-300);
+        color: var(--gray-700);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--gray-100);
+      }
+
+      .flex {
+        display: flex;
+      }
+
+      .flex-col {
+        flex-direction: column;
+      }
+
+      .items-center {
+        align-items: center;
+      }
+
+      .justify-between {
+        justify-content: space-between;
+      }
+
+      .gap-2 {
+        gap: 0.5rem;
+      }
+
+      .gap-4 {
+        gap: 1rem;
+      }
+
+      .w-full {
+        width: 100%;
+      }
+
+      .mt-2 {
+        margin-top: 0.5rem;
+      }
+
+      .mt-4 {
+        margin-top: 1rem;
+      }
+
+      .mb-2 {
+        margin-bottom: 0.5rem;
+      }
+
+      .mb-4 {
+        margin-bottom: 1rem;
+      }
+
+      .ml-2 {
+        margin-left: 0.5rem;
+      }
+
+      .mr-2 {
+        margin-right: 0.5rem;
+      }
+
+      .p-2 {
+        padding: 0.5rem;
+      }
+
+      .p-4 {
+        padding: 1rem;
+      }
+
+      .rounded {
+        border-radius: var(--border-radius);
+      }
+
+      .border {
+        border: 1px solid var(--gray-200);
+      }
+
+      .text-sm {
+        font-size: 0.875rem;
+      }
+
+      .text-xs {
+        font-size: 0.75rem;
+      }
+
+      .text-gray-500 {
+        color: var(--gray-500);
+      }
+
+      .text-blue-700 {
+        color: var(--primary-dark);
+      }
+
+      .font-medium {
+        font-weight: 500;
+      }
+
+      .font-semibold {
+        font-weight: 600;
+      }
+
+      /* Таблицы результатов */
+      .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+      }
+
+      .results-table th,
+      .results-table td {
+        border: 1px solid var(--gray-300);
+        padding: 0.5rem;
+        text-align: center;
+      }
+
+      .results-table th {
+        background-color: var(--gray-100);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .results-table td.process-name {
+        text-align: left;
+        font-weight: 500;
+      }
+
+      .results-table tr:hover {
+        background-color: var(--gray-100);
+      }
+
+      .results-table .group-header {
+        background-color: var(--gray-700);
+        color: white;
+        font-weight: 600;
+      }
+
+      .results-table .subgroup-header {
+        background-color: var(--gray-200);
+        font-weight: 600;
+      }
+
+      /* Цветовые индикаторы */
+      .score-high {
+        background-color: var(--green-100);
+        color: var(--green-600);
+      }
+
+      .score-medium {
+        background-color: var(--yellow-100);
+        color: var(--gray-800);
+      }
+
+      .score-low {
+        background-color: var(--red-100);
+        color: var(--red-600);
+      }
+
+      /* Детальная таблица */
+      .detailed-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 0.75rem;
+      }
+
+      .detailed-table th,
+      .detailed-table td {
+        border: 1px solid var(--gray-300);
+        padding: 0.25rem 0.5rem;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .detailed-table th {
+        background-color: var(--gray-100);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .detailed-table .group-header {
+        background-color: var(--gray-700);
+        color: white;
+        font-weight: 600;
+        text-align: left;
+        padding: 0.5rem;
+      }
+
+      .detailed-table .process-name {
+        text-align: left;
+        font-weight: 500;
+        background-color: var(--gray-100);
+      }
+
+      .detailed-table .process-row {
+        background-color: var(--primary-light);
+      }
+
+      .detailed-table .criteria-row td:first-child {
+        text-align: left;
+        padding-left: 1.5rem;
+      }
+
+      .detailed-table .total-row {
+        background-color: var(--gray-200);
+        font-weight: 600;
+      }
+
+      .detailed-table .total-row td {
+        border-top: 2px solid var(--gray-400);
+      }
+
+      /* Графики и визуализации */
+      .chart-container {
+        height: 300px;
+        margin-bottom: 2rem;
+      }
+
+      .summary-card {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .summary-item {
+        flex: 1;
+        min-width: 200px;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        border: 1px solid var(--gray-200);
+        text-align: center;
+      }
+
+      .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+      }
+
+      .summary-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+      }
+
+      .progress-bar {
+        height: 0.5rem;
+        background-color: var(--gray-200);
+        border-radius: 1rem;
+        overflow: hidden;
+        margin-top: 0.5rem;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background-color: var(--primary);
+        transition: width 0.3s ease;
+      }
+
+      .progress-fill.high {
+        background-color: var(--green-500);
+      }
+
+      .progress-fill.medium {
+        background-color: var(--yellow-400);
+      }
+
+      .progress-fill.low {
+        background-color: var(--red-500);
+      }
+
+      /* Состояния загрузки */
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-container {
+        background-color: var(--red-100);
+        border: 1px solid var(--red-500);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: var(--red-600);
+        text-align: center;
+      }
+
+      .error-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Мобильные стили */
+      .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+      }
+
+      .mobile-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60%;
+      }
+
+      .mobile-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .mobile-body {
+        padding-top: calc(var(--header-height) + 1rem);
+        padding-bottom: calc(var(--footer-height) + 1rem);
+      }
+
+      .mobile-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--footer-height);
+        background-color: white;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 1rem;
+      }
+
+      .mobile-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+
+      .mobile-tab.active {
+        color: var(--primary);
+      }
+
+      .mobile-tab-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .floating-action-button {
+        position: fixed;
+        right: 1.5rem;
+        bottom: calc(var(--footer-height) + 1.5rem);
+        z-index: 90;
+      }
+
+      .fab-main {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        font-size: 1.5rem;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s, background-color 0.3s;
+      }
+
+      .fab-main:hover,
+      .fab-main.active {
+        background-color: var(--primary-dark);
+      }
+
+      .fab-main.active {
+        transform: rotate(45deg);
+      }
+
+      .fab-options {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      .fab-options.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .fab-option {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: white;
+        color: var(--gray-700);
+        font-size: 1.25rem;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .fab-option:hover {
+        background-color: var(--gray-100);
+      }
+
+      .fab-label {
+        position: absolute;
+        right: 60px;
+        background-color: var(--gray-800);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .fab-option:hover .fab-label {
+        opacity: 1;
+      }
+
+      /* Split tables for processes */
+      .process-tables-container {
+        display: flex;
+        gap: 1px;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+
+      }
+
+      .process-names-table {
+        width: 40%;
+        border-right: 1px solid var(--gray-300);
+        margin-top: 54px;
+      }
+
+      .process-metrics-table {
+        width: 60%;
+
+      }
+
+      .table-wrapper {
+        overflow-y: auto;
+        max-height: 500px;
+      }
+
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: var(--gray-100);
+        z-index: 10;
+      }
+
+      /* Адаптивные стили */
+      @media (max-width: 768px) {
+        .container {
+          padding: 0.5rem;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        h2 {
+          font-size: 1.25rem;
+        }
+
+        h3 {
+          font-size: 1.125rem;
+        }
+
+        .card {
+          padding: 1rem;
+        }
+
+        .results-table {
+          font-size: 0.75rem;
+        }
+
+        .results-table th,
+        .results-table td {
+          padding: 0.25rem;
+        }
+
+        .detailed-table {
+          font-size: 0.7rem;
+        }
+
+        .detailed-table th,
+        .detailed-table td {
+          padding: 0.2rem 0.25rem;
+        }
+
+        .summary-item {
+          min-width: 150px;
+        }
+
+        .summary-value {
+          font-size: 1.5rem;
+        }
+
+        .process-tables-container {
+          flex-direction: column;
+        }
+
+        .process-names-table,
+        .process-metrics-table {
+          width: 100%;
+        }
+
+        .table-wrapper {
+          max-height: none;
+        }
+      }
+
+      @media (min-width: 769px) {
+        .mobile-header,
+        .mobile-footer,
+        .floating-action-button {
+          display: none;
+        }
+
+        .mobile-body {
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        body {
+          padding-bottom: 0;
+        }
+      }
+
+      /* Стили для печати */
+      @media print {
+        .mobile-header,
+        .mobile-footer,
+        .floating-action-button,
+        .tabs {
+          display: none !important;
+        }
+
+        .mobile-body {
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        body {
+          padding-bottom: 0;
+        }
+
+        .tab-content {
+          display: block !important;
+          page-break-after: always;
+        }
+
+        .card {
+          box-shadow: none;
+          border: 1px solid #000;
+        }
+
+        .results-table,
+        .detailed-table {
+          page-break-inside: avoid;
+        }
+
+        .results-table th,
+        .results-table td,
+        .detailed-table th,
+        .detailed-table td {
+          border: 1px solid #000;
+        }
+
+        .score-high,
+        .score-medium,
+        .score-low {
+          border: 1px solid #000;
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+
+        .process-tables-container {
+          display: block;
+        }
+
+        .process-names-table,
+        .process-metrics-table {
+          width: 100%;
+          margin-bottom: 2rem;
+        }
+
+        .table-wrapper {
+          max-height: none;
+          overflow: visible;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mobile-body">
+      <div class="container">
+        <h1>Результаты оценки чек-листа</h1>
+
+        <!-- Вкладки -->
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('competencies')">Оценка компетенций</div>
+          <div class="tab" onclick="switchTab('processes')">Оценка процессов</div>
+        </div>
+
+        <!-- Содержимое вкладки "Оценка компетенций" -->
+        <div id="competencies" class="tab-content active">
+          <div class="card">
+            <div class="flex justify-between items-center mb-4">
+              <h2>Оценка компетенций</h2>
+              <div>
+                <button class="btn btn-outline" onclick="exportResults('competencies')">
+                  <span class="mr-2">📊</span> Экспорт
+                </button>
+              </div>
+            </div>
+
+            <!-- Сводка по компетенциям -->
+            <div id="competencies-summary" class="summary-card">
+              <!-- Сводка будет заполнена динамически -->
+            </div>
+
+            <!-- Таблица результатов компетенций -->
+            <div class="table-scroll">
+              <table class="results-table" id="competencies-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">№</th>
+                    <th style="text-align: left;">Компетенция</th>
+                    <th style="width: 100px;">ОЦЕНКА</th>
+                    <th style="width: 100px;">ПОЛНОТА</th>
+                    <th style="width: 100px;">ТОЧНОСТЬ</th>
+                  </tr>
+                </thead>
+                <tbody id="competencies-table-body">
+                  <!-- Данные будут заполнены динамически -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Диаграмма компетенций -->
+          <div class="card">
+            <h2>Диаграмма оценки компетенций</h2>
+            <div class="chart-container">
+              <canvas id="competencies-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Содержимое вкладки "Оценка процессов" -->
+        <div id="processes" class="tab-content">
+          <div class="card">
+            <div class="flex justify-between items-center mb-4">
+              <h2>Оценка процессов</h2>
+              <div>
+                <button class="btn btn-outline" onclick="exportResults('processes')">
+                  <span class="mr-2">📊</span> Экспорт
+                </button>
+              </div>
+            </div>
+
+            <!-- Сводка по процессам -->
+            <div id="processes-summary" class="summary-card">
+              <div class="summary-item">
+                <div class="summary-label">Средний балл</div>
+                <div class="summary-value score-high">66.95</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Средняя оценка</div>
+                <div class="summary-value score-high">92%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill high" style="width: 92%"></div>
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Средняя полнота</div>
+                <div class="summary-value score-medium">41%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill medium" style="width: 41%"></div>
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Средняя точность</div>
+                <div class="summary-value score-medium">51%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill medium" style="width: 51%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Разделенные таблицы процессов -->
+<div class="process-tables-container">
+  <!-- Левая таблица - названия процессов -->
+  <div class="process-names-table">
+    <div class="table-wrapper" id="process-names-wrapper">
+      <table class="detailed-table">
+        <tbody>
+          <tr class="group-header">
+            <td>1. ПОДГОТОВКА К РАБОТЕ</td>
+          </tr>
+          <tr class="process-name">
+            <td>Начало смены</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Прибыть на рабочее место (мастерская)</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Получить сменное задание</td>
+          </tr>
+          <tr class="group-header">
+            <td>2. ВЫПОЛНЕНИЕ ПРОИЗВОДСТВЕННОГО ЗАДАНИЯ</td>
+          </tr>
+          <tr class="process-name">
+            <td>Подготовка к выполнению задания</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Подготовить рабочее место</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Получить необходимые инструменты</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Проверить наличие материалов</td>
+          </tr>
+          <tr class="process-name">
+            <td>Выполнение операций</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Соблюдать технологический процесс</td>
+          </tr>
+          <tr class="criteria-row">
+            <td>Правильно использовать оборудование</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Правая таблица - метрики (полностью поднята вверх) -->
+  <div class="process-metrics-table">
+    <div class="table-wrapper" id="process-metrics-wrapper">
+      <table class="detailed-table">
+        <thead class="sticky-header">
+          <tr>
+            <th colspan="3">Обозначение Z-аспекта</th>
+            <th colspan="3">Критерии качества</th>
+            <th colspan="3">Штатные инциденты</th>
+            <th colspan="4">Всего</th>
+          </tr>
+          <tr>
+            <th>Всего</th>
+            <th>Проверено</th>
+            <th>Выполнено</th>
+            <th>Полнота</th>
+            <th>Точность</th>
+            <th>Оценка</th>
+            <th>Полнота</th>
+            <th>Точность</th>
+            <th>Балл</th>
+            <th>Оценка</th>
+            <th>Полнота</th>
+            <th>Точность</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Данные начинаются сразу после заголовков -->
+          <tr>
+            <td>6</td>
+            <td>6</td>
+            <td>5</td>
+            <td class="score-high">83%</td>
+            <td class="score-high">93%</td>
+            <td class="score-medium">96%</td>
+            <td class="score-medium">62%</td>
+            <td class="score-high">92%</td>
+            <td class="score-medium">67%</td>
+            <td class="score-medium">40%</td>
+            <td class="score-high">93%</td>
+            <td class="score-high">84%</td>
+            <td class="score-medium">55%</td>
+          </tr>
+          <tr>
+            <td colspan="4"></td>
+            <td>93%</td>
+            <td>83%</td>
+            <td>64%</td>
+            <td>0%</td>
+            <td>0%</td>
+            <td>0%</td>
+            <td>4.25</td>
+            <td>93%</td>
+            <td>83%</td>
+          </tr>
+          <tr>
+            <td colspan="4"></td>
+            <td>96%</td>
+            <td>100%</td>
+            <td>90%</td>
+            <td>75%</td>
+            <td>100%</td>
+            <td>60%</td>
+            <td>4.35</td>
+            <td>96%</td>
+            <td>100%</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>11</td>
+            <td>11</td>
+            <td class="score-high">100%</td>
+            <td class="score-high">88%</td>
+            <td class="score-low">30%</td>
+            <td class="score-medium">65%</td>
+            <td class="score-high">94%</td>
+            <td class="score-low">27%</td>
+            <td class="score-low">30%</td>
+            <td class="score-high">91%</td>
+            <td class="score-low">31%</td>
+            <td class="score-medium">48%</td>
+          </tr>
+          <!-- Пустые строки для выравнивания высоты -->
+          <tr><td colspan="13"></td></tr>
+          <tr><td colspan="13"></td></tr>
+          <tr><td colspan="13"></td></tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Данные компетенций
+      const competenciesData = [
+        { id: 1, name: "Техническая экспертиза", score: "92%", completeness: "87%", accuracy: "76%" },
+        { id: 2, name: "Решение проблем", score: "88%", completeness: "75%", accuracy: "68%" },
+        { id: 3, name: "Коммуникация", score: "94%", completeness: "81%", accuracy: "72%" },
+        { id: 4, name: "Работа в команде", score: "90%", completeness: "79%", accuracy: "82%" },
+        { id: 5, name: "Адаптивность", score: "86%", completeness: "72%", accuracy: "65%" }
+      ];
+
+      const competenciesSummary = {
+        averageScore: "90",
+        averageCompleteness: "79",
+        averageAccuracy: "73"
+      };
+
+      // Переключение вкладок
+      function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab').forEach(tab => {
+          if (tab.textContent.toLowerCase().includes(tabId)) {
+            tab.classList.add('active');
+          }
+        });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(tabId).classList.add('active');
+      }
+
+      // Отображение сводки по компетенциям
+      function renderCompetenciesSummary() {
+        const summary = document.getElementById('competencies-summary');
+        if (!summary) return;
+
+        const scoreClass = parseFloat(competenciesSummary.averageScore) >= 90 ? 'high' :
+          parseFloat(competenciesSummary.averageScore) >= 70 ? 'medium' : 'low';
+        const completenessClass = parseFloat(competenciesSummary.averageCompleteness) >= 70 ? 'high' :
+          parseFloat(competenciesSummary.averageCompleteness) >= 40 ? 'medium' : 'low';
+        const accuracyClass = parseFloat(competenciesSummary.averageAccuracy) >= 70 ? 'high' :
+          parseFloat(competenciesSummary.averageAccuracy) >= 40 ? 'medium' : 'low';
+
+        summary.innerHTML = `
+          <div class="summary-item">
+            <div class="summary-label">Средняя оценка</div>
+            <div class="summary-value score-${scoreClass}">${competenciesSummary.averageScore}%</div>
+            <div class="progress-bar">
+              <div class="progress-fill ${scoreClass}" style="width: ${competenciesSummary.averageScore}%"></div>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Средняя полнота</div>
+            <div class="summary-value score-${completenessClass}">${competenciesSummary.averageCompleteness}%</div>
+            <div class="progress-bar">
+              <div class="progress-fill ${completenessClass}" style="width: ${competenciesSummary.averageCompleteness}%"></div>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Средняя точность</div>
+            <div class="summary-value score-${accuracyClass}">${competenciesSummary.averageAccuracy}%</div>
+            <div class="progress-bar">
+              <div class="progress-fill ${accuracyClass}" style="width: ${competenciesSummary.averageAccuracy}%"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Отображение таблицы компетенций
+      function renderCompetenciesTable() {
+        const tableBody = document.getElementById('competencies-table-body');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        competenciesData.forEach(item => {
+          const scoreValue = parseFloat(item.score.replace(',', '.').replace('%', ''));
+          const completenessValue = parseFloat(item.completeness.replace(',', '.').replace('%', ''));
+          const accuracyValue = parseFloat(item.accuracy.replace(',', '.').replace('%', ''));
+
+          const scoreClass = scoreValue >= 90 ? 'score-high' :
+            scoreValue >= 70 ? 'score-medium' : 'score-low';
+          const completenessClass = completenessValue >= 70 ? 'score-high' :
+            completenessValue >= 40 ? 'score-medium' : 'score-low';
+          const accuracyClass = accuracyValue >= 70 ? 'score-high' :
+            accuracyValue >= 40 ? 'score-medium' : 'score-low';
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.id}</td>
+            <td class="process-name">${item.name}</td>
+            <td class="${scoreClass}">${item.score}</td>
+            <td class="${completenessClass}">${item.completeness}</td>
+            <td class="${accuracyClass}">${item.accuracy}</td>
+          `;
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      // Создание диаграммы компетенций
+      function renderCompetenciesChart() {
+        const ctx = document.getElementById('competencies-chart').getContext('2d');
+
+        const labels = competenciesData.map(item => item.name);
+        const scoreData = competenciesData.map(item => parseFloat(item.score.replace(',', '.').replace('%', '')));
+        const completenessData = competenciesData.map(item => parseFloat(item.completeness.replace(',', '.').replace('%', '')));
+        const accuracyData = competenciesData.map(item => parseFloat(item.accuracy.replace(',', '.').replace('%', '')));
+
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Оценка',
+                data: scoreData,
+                backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                borderColor: 'rgba(5, 150, 105, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Полнота',
+                data: completenessData,
+                backgroundColor: 'rgba(251, 191, 36, 0.6)',
+                borderColor: 'rgba(245, 158, 11, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Точность',
+                data: accuracyData,
+                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                borderColor: 'rgba(37, 99, 235, 1)',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Процент (%)'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Компетенции'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Синхронизация прокрутки таблиц
+      function initSynchronizedScrolling() {
+        const namesWrapper = document.getElementById('process-names-wrapper');
+        const metricsWrapper = document.getElementById('process-metrics-wrapper');
+
+        namesWrapper.addEventListener('scroll', () => {
+          metricsWrapper.scrollTop = namesWrapper.scrollTop;
+        });
+
+        metricsWrapper.addEventListener('scroll', () => {
+          namesWrapper.scrollTop = metricsWrapper.scrollTop;
+        });
+      }
+
+      // Экспорт результатов
+      function exportResults(tabId) {
+        let report = `ОТЧЕТ ПО ОЦЕНКЕ ЧЕК-ЛИСТА\n`;
+        report += `Дата экспорта: ${new Date().toLocaleDateString()}\n\n`;
+
+        if (tabId === 'competencies') {
+          report += `ОЦЕНКА КОМПЕТЕНЦИЙ\n`;
+          report += `=================\n\n`;
+
+          report += `Средняя оценка: ${competenciesSummary.averageScore}%\n`;
+          report += `Средняя полнота: ${competenciesSummary.averageCompleteness}%\n`;
+          report += `Средняя точность: ${competenciesSummary.averageAccuracy}%\n\n`;
+
+          report += `ДЕТАЛЬНАЯ ИНФОРМАЦИЯ:\n\n`;
+          report += `№\tКомпетенция\tОЦЕНКА\tПОЛНОТА\tТОЧНОСТЬ\n`;
+
+          competenciesData.forEach(item => {
+            report += `${item.id}\t${item.name}\t${item.score}\t${item.completeness}\t${item.accuracy}\n`;
+          });
+        } else {
+          report += `ОЦЕНКА ПРОЦЕССОВ\n`;
+          report += `===============\n\n`;
+
+          report += `Средний балл: 66.95\n`;
+          report += `Средняя оценка: 92%\n`;
+          report += `Средняя полнота: 41%\n`;
+          report += `Средняя точность: 51%\n\n`;
+
+          report += `ДЕТАЛЬНАЯ ИНФОРМАЦИЯ:\n\n`;
+          report += `1. ПОДГОТОВКА К РАБОТЕ\n`;
+          report += `Всего: 6, Проверено: 6, Выполнено: 5\n`;
+          report += `Оценка: 83%, Полнота: 93%, Точность: 96%\n`;
+        }
+
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `checklist_results_${tabId}_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showNotification('Отчет успешно экспортирован!');
+      }
+
+      // Показать уведомление
+      function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.style.position = 'fixed';
+        notification.style.bottom = '80px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.backgroundColor = 'var(--primary)';
+        notification.style.color = 'white';
+        notification.style.padding = '0.75rem 1.5rem';
+        notification.style.borderRadius = 'var(--border-radius)';
+        notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+        notification.style.zIndex = '1000';
+        notification.style.transition = 'opacity 0.3s, transform 0.3s';
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(-50%) translateY(20px)';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          notification.style.opacity = '1';
+          notification.style.transform = 'translateX(-50%) translateY(0)';
+        }, 10);
+
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          notification.style.transform = 'translateX(-50%) translateY(20px)';
+
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+
+      // Инициализация при загрузке страницы
+      document.addEventListener('DOMContentLoaded', () => {
+        renderCompetenciesSummary();
+        renderCompetenciesTable();
+        renderCompetenciesChart();
+        initSynchronizedScrolling();
+      });
+    </script>
+  </body>
+</html>

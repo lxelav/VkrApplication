@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <style>
+        body { background-color: #f0f4ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; padding: 0 20px; }
+        .auth-container { background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); max-width: 350px; width: 100%; border: 2px solid #003366; box-sizing: border-box; }
+        .auth-container h2 { text-align: center; color: #003366; }
+        .auth-container label { display: block; margin: 10px 0 5px; color: #003366; }
+        .auth-container input, .auth-container button { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #003366; border-radius: 5px; box-sizing: border-box; }
+        .auth-container button { background-color: #003366; color: #fff; border: none; cursor: pointer; }
+        .auth-container button:hover { background-color: #00509e; }
+    </style>
+</head>
+<body>
+<div class="auth-container">
+    <h2>Войти в систему</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="username">Логин</label>
+        <input id="username" name="username" type="text" placeholder="Логин" required>
+        <label for="password">Пароль</label>
+        <input id="password" name="password" type="password" placeholder="Пароль" required>
+        <button type="submit">Войти</button>
+    </form>
+</div>
+</body>
+</html>

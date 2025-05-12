@@ -1,0 +1,1732 @@
+{% extends 'base.html' %}
+
+{% block title %}Результаты оценки чек-листа{% endblock %}
+
+{% block content %}
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3b82f6">
+<style>
+      /* Основные стили */
+      :root {
+        --primary: #3b82f6;
+        --primary-dark: #2563eb;
+        --primary-light: #dbeafe;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --red-100: #fee2e2;
+        --red-500: #ef4444;
+        --red-600: #dc2626;
+        --red-700: #b91c1c;
+        --yellow-100: #fef3c7;
+        --yellow-300: #fcd34d;
+        --yellow-400: #fbbf24;
+        --green-100: #d1fae5;
+        --green-500: #10b981;
+        --green-600: #059669;
+        --green-700: #047857;
+        --border-radius: 0.5rem;
+        --header-height: 60px;
+        --footer-height: 60px;
+        --transition-speed: 0.3s;
+      }
+
+      .status-icon {
+        margin-left: 8px;
+        font-weight: bold;
+      }
+
+      .status-icon.yes {
+        color: #28a745; /* Зеленый для галки */
+      }
+      .status-icon.neutral {
+        color: #6c757d; /* Серый для прочерка */
+      }
+
+      .status-icon.no {
+        color: #dc3545; /* Красный для крестика */
+      }
+
+      .criterion-name {
+        vertical-align: middle;
+      }
+
+
+      //asdasdsas
+      /* Стили для единой таблицы процессов */
+.unified-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.unified-table th,
+.unified-table td {
+  border: 1px solid var(--gray-300);
+  padding: 0.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.unified-table th {
+  background-color: var(--gray-100);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.unified-table .name-column {
+  width: 350px;
+  text-align: center;
+  background-color: var(--gray-200);
+  font-weight: 600;
+}
+
+.unified-table .group-header {
+  background-color: var(--gray-700);
+  color: white;
+}
+
+.unified-table .group-header td.process-name {
+  font-weight: 600;
+  padding-left: 0.5rem;
+}
+
+.unified-table .process-row {
+  background-color: var(--primary-light);
+}
+
+.unified-table .process-name {
+  text-align: left;
+  font-weight: 500;
+  padding-left: 0.5rem;
+}
+
+.unified-table .criteria-row {
+  background-color: white;
+}
+
+.unified-table .criterion-cell {
+  text-align: left;
+  padding-left: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.unified-table .criterion-name {
+  flex: 1;
+  text-align: left;
+}
+
+.unified-table .status-icon {
+  margin-left: 8px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.unified-table .status-icon.yes {
+  color: #28a745; /* Зеленый для галки */
+}
+
+.unified-table .status-icon.neutral {
+  color: #6c757d; /* Серый для прочерка */
+}
+
+.unified-table .status-icon.no {
+  color: #dc3545; /* Красный для крестика */
+}
+
+/* Стили для групп метрик */
+.unified-table th.z-aspect {
+  background-color: var(--primary-light);
+}
+
+.unified-table th.quality {
+  background-color: var(--green-100);
+}
+
+.unified-table th.incident {
+  background-color: var(--yellow-100);
+}
+
+.unified-table th.total {
+  background-color: var(--gray-100);
+}
+
+/* Стили для разделителей групп */
+.unified-table .separator {
+  width: 12px;
+  background-color: #f8f9fa;
+  border-left: 2px solid #e9ecef;
+  border-right: 2px solid #e9ecef;
+}
+
+/* Стили для контейнера таблицы */
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+}
+
+.table-wrapper {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Фиксированные заголовки */
+.unified-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.unified-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.unified-table thead tr:first-child th {
+  top: 0;
+}
+
+.unified-table thead tr:nth-child(2) th {
+  top: 38px; /* Высота первой строки заголовка */
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .unified-table {
+    font-size: 0.7rem;
+  }
+
+  .unified-table th,
+  .unified-table td {
+    padding: 0.25rem;
+  }
+
+  .unified-table .name-column {
+    width: 150px;
+  }
+}
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        line-height: 1.5;
+        color: var(--gray-800);
+        background-color: #fff;
+        padding-bottom: var(--footer-height);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: var(--primary);
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Компоненты */
+      .card {
+        background-color: #fff;
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--gray-200);
+      }
+
+      .tabs {
+        display: flex;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+
+      .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-size: 0.875rem;
+        touch-action: manipulation;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--gray-300);
+        color: var(--gray-700);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--gray-100);
+      }
+
+      .flex {
+        display: flex;
+      }
+
+      .flex-col {
+        flex-direction: column;
+      }
+
+      .items-center {
+        align-items: center;
+      }
+
+      .justify-between {
+        justify-content: space-between;
+      }
+
+      .gap-2 {
+        gap: 0.5rem;
+      }
+
+      .gap-4 {
+        gap: 1rem;
+      }
+
+      .w-full {
+        width: 100%;
+      }
+
+      .mt-2 {
+        margin-top: 0.5rem;
+      }
+
+      .mt-4 {
+        margin-top: 1rem;
+      }
+
+      .mb-2 {
+        margin-bottom: 0.5rem;
+      }
+
+      .mb-4 {
+        margin-bottom: 1rem;
+      }
+
+      .ml-2 {
+        margin-left: 0.5rem;
+      }
+
+      .mr-2 {
+        margin-right: 0.5rem;
+      }
+
+      .p-2 {
+        padding: 0.5rem;
+      }
+
+      .p-4 {
+        padding: 1rem;
+      }
+
+      .rounded {
+        border-radius: var(--border-radius);
+      }
+
+      .border {
+        border: 1px solid var(--gray-200);
+      }
+
+      .text-sm {
+        font-size: 0.875rem;
+      }
+
+      .text-xs {
+        font-size: 0.75rem;
+      }
+
+      .text-gray-500 {
+        color: var(--gray-500);
+      }
+
+      .text-blue-700 {
+        color: var(--primary-dark);
+      }
+
+      .font-medium {
+        font-weight: 500;
+      }
+
+      .font-semibold {
+        font-weight: 600;
+      }
+
+      /* Таблицы результатов */
+      .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+      }
+
+      .results-table th,
+      .results-table td {
+        border: 1px solid var(--gray-300);
+        padding: 0.5rem;
+        text-align: center;
+      }
+
+      .results-table th {
+        background-color: var(--gray-100);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .results-table td.process-name {
+        text-align: left;
+        font-weight: 500;
+      }
+
+      .results-table tr:hover {
+        background-color: var(--gray-100);
+      }
+
+      .results-table .group-header {
+        background-color: var(--gray-700);
+        color: white;
+        font-weight: 600;
+      }
+
+      .results-table .subgroup-header {
+        background-color: var(--gray-200);
+        font-weight: 600;
+      }
+
+      /* Цветовые индикаторы */
+      .score-high {
+        background-color: var(--green-100);
+        color: var(--green-600);
+      }
+
+      .score-medium {
+        background-color: var(--yellow-100);
+        color: var(--gray-800);
+      }
+
+      .score-low {
+        background-color: var(--red-100);
+        color: var(--red-600);
+      }
+
+      /* Детальная таблица */
+      .detailed-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 0.75rem;
+      }
+
+      /* Специфичные ширины для разных типов столбцов */
+      .detailed-table .narrow-col {
+        min-width: 40px;
+      }
+
+      .detailed-table .wide-col {
+        min-width: 80px;
+      }
+
+      /* Добавляем класс для таблицы с метриками */
+      .metrics-spacing {
+        /* Горизонтальный отступ между ячейками */
+        border-spacing: 8px 0;
+      }
+
+      .detailed-table th,
+      .detailed-table td {
+        border: 1px solid var(--gray-300);
+        padding: 0.25rem 0.5rem;
+        text-align: center;
+        vertical-align: middle;
+        min-width: 60px; /* Минимальная ширина для всех ячеек */
+      }
+
+      .detailed-table th {
+        background-color: var(--gray-100);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .detailed-table .group-header {
+        background-color: var(--gray-700);
+        color: white;
+        font-weight: 600;
+        text-align: left;
+        padding: 0.5rem;
+      }
+
+      .detailed-table .process-name {
+        text-align: left;
+        font-weight: 500;
+        background-color: var(--gray-100);
+      }
+
+      .detailed-table .process-row {
+        background-color: var(--primary-light);
+      }
+
+      .detailed-table .criteria-row td:first-child {
+        text-align: left;
+        padding-left: 1.5rem;
+      }
+
+      .detailed-table .total-row {
+        background-color: var(--gray-200);
+        font-weight: 600;
+      }
+
+      .detailed-table .total-row td {
+        border-top: 2px solid var(--gray-400);
+      }
+
+     .detailed-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.metrics-spacing {
+  /* Горизонтальный отступ между группами столбцов */
+  border-spacing: 4px 0;
+}
+
+/* Стили для групп метрик */
+.metric-group {
+  background-color: var(--gray-100);
+  border-right: 2px solid var(--gray-300);
+}
+
+.metric-group-header {
+  background-color: var(--gray-200);
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 2px solid var(--gray-300);
+}
+
+/* Визуальное разделение групп метрик */
+.z-aspect-cols {
+  background-color: var(--primary-light);
+}
+
+.quality-cols {
+  background-color: var(--green-100);
+}
+
+.incident-cols {
+  background-color: var(--yellow-100);
+}
+
+.total-cols {
+  background-color: var(--gray-100);
+}
+
+/* Добавляем вертикальные разделители между группами */
+.col-divider {
+  width: 8px;
+  background-color: white;
+  border: none;
+  padding: 0;
+}
+
+/* Стили для строк таблицы */
+.detailed-table tr {
+  transition: height 0.2s ease;
+}
+
+/* Стили для ячеек с названиями */
+.detailed-table td {
+  vertical-align: middle;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Фиксированная ширина для таблицы с названиями */
+#process-names-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#process-names-table td {
+  padding: 8px;
+}
+
+/* Стили для вкладок */
+.tab {
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+}
+
+      /* Графики и визуализации */
+      .chart-container {
+        height: 300px;
+        margin-bottom: 2rem;
+      }
+
+      .summary-card {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .summary-item {
+        flex: 1;
+        min-width: 200px;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        border: 1px solid var(--gray-200);
+        text-align: center;
+      }
+
+      .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+      }
+
+      .summary-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+      }
+
+      .progress-bar {
+        height: 0.5rem;
+        background-color: var(--gray-200);
+        border-radius: 1rem;
+        overflow: hidden;
+        margin-top: 0.5rem;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background-color: var(--primary);
+        transition: width 0.3s ease;
+      }
+
+      .progress-fill.high {
+        background-color: var(--green-500);
+      }
+
+      .progress-fill.medium {
+        background-color: var(--yellow-400);
+      }
+
+      .progress-fill.low {
+        background-color: var(--red-500);
+      }
+
+      /* Состояния загрузки */
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-container {
+        background-color: var(--red-100);
+        border: 1px solid var(--red-500);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: var(--red-600);
+        text-align: center;
+      }
+
+      .error-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Мобильные стили */
+      .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+      }
+
+      .mobile-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60%;
+      }
+
+      .mobile-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .mobile-body {
+        padding-top: calc(var(--header-height) + 1rem);
+        padding-bottom: calc(var(--footer-height) + 1rem);
+      }
+
+      .mobile-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--footer-height);
+        background-color: white;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 1rem;
+      }
+
+      .mobile-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+
+      .mobile-tab.active {
+        color: var(--primary);
+      }
+
+      .mobile-tab-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .floating-action-button {
+        position: fixed;
+        right: 1.5rem;
+        bottom: calc(var(--footer-height) + 1.5rem);
+        z-index: 90;
+      }
+
+      .fab-main {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        font-size: 1.5rem;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s, background-color 0.3s;
+      }
+
+      .fab-main:hover,
+      .fab-main.active {
+        background-color: var(--primary-dark);
+      }
+
+      .fab-main.active {
+        transform: rotate(45deg);
+      }
+
+      .fab-options {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      .fab-options.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .fab-option {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: white;
+        color: var(--gray-700);
+        font-size: 1.25rem;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .fab-option:hover {
+        background-color: var(--gray-100);
+      }
+
+      .fab-label {
+        position: absolute;
+        right: 60px;
+        background-color: var(--gray-800);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .fab-option:hover .fab-label {
+        opacity: 1;
+      }
+
+      /* Split tables for processes */
+      .process-tables-container {
+        display: flex;
+        gap: 1px;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+
+      }
+
+      .process-names-table {
+        width: 40%;
+        border-right: 1px solid var(--gray-300);
+        margin-top: 54px;
+      }
+
+      .process-metrics-table {
+        width: 60%;
+
+      }
+
+      .table-wrapper {
+        overflow-y: auto;
+        max-height: 500px;
+      }
+
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: var(--gray-100);
+        z-index: 10;
+      }
+
+      /* Адаптивные стили */
+      @media (max-width: 768px) {
+        .container {
+          padding: 0.5rem;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        h2 {
+          font-size: 1.25rem;
+        }
+
+        h3 {
+          font-size: 1.125rem;
+        }
+
+        .card {
+          padding: 1rem;
+        }
+
+        .results-table {
+          font-size: 0.75rem;
+        }
+
+        .results-table th,
+        .results-table td {
+          padding: 0.25rem;
+        }
+
+        .detailed-table {
+          font-size: 0.7rem;
+        }
+
+        .detailed-table th,
+        .detailed-table td {
+          padding: 0.2rem 0.25rem;
+        }
+
+        .summary-item {
+          min-width: 150px;
+        }
+
+        .summary-value {
+          font-size: 1.5rem;
+        }
+
+        .process-tables-container {
+          flex-direction: column;
+        }
+
+        .process-names-table,
+        .process-metrics-table {
+          width: 100%;
+        }
+
+        .table-wrapper {
+          max-height: none;
+        }
+      }
+
+      @media (min-width: 769px) {
+        .mobile-header,
+        .mobile-footer,
+        .floating-action-button {
+          display: none;
+        }
+
+        .mobile-body {
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        body {
+          padding-bottom: 0;
+        }
+      }
+
+      /* Стили для печати */
+      @media print {
+        .mobile-header,
+        .mobile-footer,
+        .floating-action-button,
+        .tabs {
+          display: none !important;
+        }
+
+        .mobile-body {
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        body {
+          padding-bottom: 0;
+        }
+
+        .tab-content {
+          display: block !important;
+          page-break-after: always;
+        }
+
+        .card {
+          box-shadow: none;
+          border: 1px solid #000;
+        }
+
+        .results-table,
+        .detailed-table {
+          page-break-inside: avoid;
+        }
+
+        .results-table th,
+        .results-table td,
+        .detailed-table th,
+        .detailed-table td {
+          border: 1px solid #000;
+        }
+
+        .score-high,
+        .score-medium,
+        .score-low {
+          border: 1px solid #000;
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+
+        .process-tables-container {
+          display: block;
+        }
+
+        .process-names-table,
+        .process-metrics-table {
+          width: 100%;
+          margin-bottom: 2rem;
+        }
+
+        .table-wrapper {
+          max-height: none;
+          overflow: visible;
+        }
+      }
+    </style>
+<!-- Подключаем Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="mobile-body">
+  <div class="container">
+    <h1>Результаты оценки чек-листа</h1>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('competencies')">Оценка компетенций</div>
+      <div class="tab" onclick="switchTab('processes')">Оценка процессов</div>
+    </div>
+
+    <!-- Содержимое вкладки "Оценка компетенций" -->
+    <div id="competencies" class="tab-content active">
+      <div class="card">
+        <div class="flex justify-between items-center mb-4">
+          <h2>Оценка компетенций</h2>
+          <div>
+            <button class="btn btn-outline" onclick="exportResults('competencies')">
+              <span class="mr-2">📊</span> Экспорт
+            </button>
+          </div>
+        </div>
+
+        <!-- Сводка по компетенциям -->
+        <div id="competencies-summary" class="summary-card">
+          <!-- Сводка будет заполнена динамически -->
+        </div>
+
+        <!-- Таблица результатов компетенций -->
+        <div class="table-scroll">
+          <table class="results-table" id="competencies-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">№</th>
+                <th style="text-align: left;">Компетенция</th>
+                <th style="width: 100px;">ОЦЕНКА</th>
+                <th style="width: 100px;">ПОЛНОТА</th>
+                <th style="width: 100px;">ТОЧНОСТЬ</th>
+              </tr>
+            </thead>
+            <tbody id="competencies-table-body">
+              <!-- Данные будут заполнены динамически -->
+            </tbody>
+          </table>
+        </div>
+        </div>
+
+      <!-- Диаграмма компетенций -->
+      <div class="chart-card">
+        <div class="chart-title">Диаграмма оценки компетенций</div>
+        <div class="chart-container">
+          <canvas id="competencies-chart"></canvas>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- Содержимое вкладки "Оценка процессов" -->
+    <div id="processes" class="tab-content">
+      <div class="card">
+        <div class="flex justify-between items-center mb-4">
+          <h2>Оценка процессов</h2>
+          <div>
+            <button class="btn btn-outline" onclick="exportResults('processes')">
+              <span class="mr-2">📊</span> Экспорт
+            </button>
+          </div>
+        </div>
+
+        <!-- Сводка по процессам -->
+        <div id="processes-summary" class="summary-card">
+
+        </div>
+
+        <!-- Единая таблица процессов -->
+        <div class="table-container">
+          <div class="table-wrapper" id="processes-table-wrapper">
+            <!-- Таблица будет заполнена динамически -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Данные компетенций, встроенные из Django -->
+<script>
+  var competenciesData = JSON.parse('{{ competencies_json|escapejs }}');
+  var competenciesSummary = JSON.parse('{{ competencies_summary_json|escapejs }}');
+
+  var processesData = JSON.parse('{{ processes_data|escapejs }}');
+  var processesSummary = JSON.parse('{{ processes_summary|escapejs }}');
+
+  // Текущая вкладка
+  let currentTab = 'competencies';
+  // Флаг для отслеживания изменений DOM
+  let observerActive = false;
+
+  // Переключение вкладок
+  function switchTab(tabId) {
+    // Обновляем активную вкладку
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+      if (tab.textContent.toLowerCase().includes(tabId)) {
+        tab.classList.add('active');
+      }
+    });
+
+    // Обновляем активное содержимое
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.remove('active');
+    });
+    document.getElementById(tabId).classList.add('active');
+
+    // Обновляем активную мобильную вкладку
+    document.querySelectorAll('.mobile-tab').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    document.querySelectorAll('.mobile-tab').forEach(tab => {
+      if (tab.getAttribute('data-tab') === tabId) {
+        tab.classList.add('active');
+      }
+    });
+
+    currentTab = tabId;
+    // Синхронизируем высоту строк, если переключились на вкладку процессов
+    if (tabId === 'processes') {
+      setTimeout(syncRowHeights, 100);
+      setupRowObserver();
+    }
+  }
+
+  // Получение текущей вкладки
+  function getCurrentTab() {
+    return currentTab;
+  }
+
+  // Отображение сводки по компетенциям
+  function renderCompetenciesSummary() {
+    // Определяем классы для цветовой индикации
+    const scoreClass = parseFloat(competenciesSummary.averageScore) >= 90 ? 'high' :
+                      parseFloat(competenciesSummary.averageScore) >= 70 ? 'medium' : 'low';
+    const completenessClass = parseFloat(competenciesSummary.averageCompleteness) >= 70 ? 'high' :
+                             parseFloat(competenciesSummary.averageCompleteness) >= 40 ? 'medium' : 'low';
+    const accuracyClass = parseFloat(competenciesSummary.averageAccuracy) >= 70 ? 'high' :
+                         parseFloat(competenciesSummary.averageAccuracy) >= 40 ? 'medium' : 'low';
+
+    document.getElementById('competencies-summary').innerHTML = `
+      <div class="summary-item">
+        <div class="summary-label">Средняя оценка</div>
+        <div class="summary-value score-${scoreClass}">${competenciesSummary.averageScore}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${scoreClass}" style="width: ${competenciesSummary.averageScore}%"></div>
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Средняя полнота</div>
+        <div class="summary-value score-${completenessClass}">${competenciesSummary.averageCompleteness}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${completenessClass}" style="width: ${competenciesSummary.averageCompleteness}%"></div>
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Средняя точность</div>
+        <div class="summary-value score-${accuracyClass}">${competenciesSummary.averageAccuracy}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${accuracyClass}" style="width: ${competenciesSummary.averageAccuracy}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function parsePercentage(value) {
+    // Если значение уже число
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    // Если null/undefined/пустая строка
+    if (!value) {
+      return 0;
+    }
+
+    // Преобразуем строку
+    try {
+      // Удаляем все нечисловые символы (кроме точки и минуса)
+      const cleaned = String(value)
+        .replace('%', '')
+        .replace(',', '.')
+        .replace(/[^\d.-]/g, '');
+
+      // Парсим в число
+      const parsed = parseFloat(cleaned);
+
+      // Проверяем результат
+      return isNaN(parsed) ? 0 : parsed;
+    } catch (e) {
+      console.warn('Ошибка парсинга значения:', value, e);
+      return 0;
+    }
+  }
+
+  // Отображение таблицы компетенций
+  function renderCompetenciesTable() {
+    const tableBody = document.getElementById('competencies-table-body');
+    tableBody.innerHTML = '';
+
+    competenciesData.forEach(item => {
+      const scoreValue = parsePercentage(item.score);        // Работает с "0.0%", "75,5%", 80, "80%" и т.д.
+      const completenessValue = parsePercentage(item.completeness);
+      const accuracyValue = parsePercentage(item.accuracy);
+
+      const scoreClass = scoreValue >= 90 ? 'score-high' :
+                        scoreValue >= 70 ? 'score-medium' : 'score-low';
+      const completenessClass = completenessValue >= 70 ? 'score-high' :
+                               completenessValue >= 40 ? 'score-medium' : 'score-low';
+      const accuracyClass = accuracyValue >= 70 ? 'score-high' :
+                           accuracyValue >= 40 ? 'score-medium' : 'score-low';
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.id}</td>
+        <td class="process-name">${item.name}</td>
+        <td class="${scoreClass}">${item.score}</td>
+        <td class="${completenessClass}">${item.completeness}</td>
+        <td class="${accuracyClass}">${item.accuracy}</td>
+      `;
+
+      tableBody.appendChild(row);
+    });
+  }
+
+// Экспорт результатов
+function exportResults(tabId) {
+  // Объявляем переменные, чтобы избежать ошибок
+  let competenciesSummary = {};
+  let competenciesData = [];
+  let processes_data = processesData;
+
+  // Создаем текстовый отчет
+  let report = `ОТЧЕТ ПО ОЦЕНКЕ ЧЕК-ЛИСТА\n`;
+  report += `Дата экспорта: ${new Date().toLocaleDateString()}\n\n`;
+
+  if (tabId === 'competencies') {
+    report += `ОЦЕНКА КОМПЕТЕНЦИЙ\n`;
+    report += `=================\n\n`;
+
+    // Добавляем сводку
+    report += `Средняя оценка: ${competenciesSummary.averageScore}%\n`;
+    report += `Средняя полнота: ${competenciesSummary.averageCompleteness}%\n`;
+    report += `Средняя точность: ${competenciesSummary.averageAccuracy}%\n\n`;
+
+    // Добавляем детальную информацию
+    report += `ДЕТАЛЬНАЯ ИНФОРМАЦИЯ:\n\n`;
+    report += `№\tКомпетенция\tОЦЕНКА\tПОЛНОТА\tТОЧНОСТЬ\n`;
+
+    competenciesData.forEach(item => {
+      report += `${item.id}\t${item.name}\t${item.score}\t${item.completeness}\t${item.accuracy}\n`;
+    });
+  } else {
+    report += `ОЦЕНКА ПРОЦЕССОВ\n`;
+    report += `===============\n\n`;
+
+    // Рассчитываем общие средние показатели по всем группам
+    let totalScoreSum = 0;
+    let totalCompletenessSum = 0;
+    let totalAccuracySum = 0;
+    let totalPointsSum = 0;
+    let groupCount = processes_data.length;
+
+    processes_data.forEach(group => {
+      totalScoreSum += parseFloat(group.metrics.totalScore);
+      totalCompletenessSum += parseFloat(group.metrics.totalCompleteness);
+      totalAccuracySum += parseFloat(group.metrics.totalAccuracy);
+      totalPointsSum += parseFloat(group.metrics.totalPoints);
+    });
+
+    // Добавляем сводку
+    report += `Средний балл: ${(totalPointsSum / groupCount).toFixed(2)}\n`;
+    report += `Средняя оценка: ${(totalScoreSum / groupCount).toFixed(0)}%\n`;
+    report += `Средняя полнота: ${(totalCompletenessSum / groupCount).toFixed(0)}%\n`;
+    report += `Средняя точность: ${(totalAccuracySum / groupCount).toFixed(0)}%\n\n`;
+
+    // Добавляем детальную информацию по группам и процессам
+    report += `ДЕТАЛЬНАЯ ИНФОРМАЦИЯ:\n\n`;
+
+    // Перебираем все группы процессов
+    processes_data.forEach(group => {
+      report += `${group.name}\n`;
+      report += `${'='.repeat(group.name.length)}\n\n`;
+
+      // Добавляем статистику группы в отчет
+      report += `Всего: ${group.metrics.total}, Проверено: ${group.metrics.checked}, Выполнено: ${group.metrics.completed}\n`;
+      report += `Оценка: ${group.metrics.totalScore}%, Полнота: ${group.metrics.totalCompleteness}%, Точность: ${group.metrics.totalAccuracy}%\n\n`;
+
+      // Добавляем информацию по процессам
+      group.processes.forEach(process => {
+        report += `${process.name}\n`;
+        report += `${'-'.repeat(process.name.length)}\n\n`;
+
+        report += `Всего: ${process.metrics.total}, Проверено: ${process.metrics.checked}, Выполнено: ${process.metrics.completed}\n`;
+        report += `Оценка: ${process.metrics.totalScore}%, Полнота: ${process.metrics.totalCompleteness}%, Точность: ${process.metrics.totalAccuracy}%\n\n`;
+
+        // Добавляем критерии
+        if (process.criteria && process.criteria.length > 0) {
+          report += `Критерии:\n`;
+          process.criteria.forEach(criterion => {
+            const status = criterion.yes === 'true' ? 'Выполнен' : 'Не выполнен';
+
+            report += `- ${criterion.name} - ${status}\n`;
+            report += `  Оценка: ${criterion.metrics.totalScore}%, Полнота: ${criterion.metrics.totalCompleteness}%, Точность: ${criterion.metrics.totalAccuracy}%\n`;
+          });
+          report += `\n`;
+        }
+      });
+
+      report += `\n`;
+    });
+  }
+
+  // Создаем ссылку для скачивания
+  const blob = new Blob([report], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `checklist_results_${tabId}_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Показываем уведомление
+  showNotification('Отчет успешно экспортирован!');
+}
+
+  // Показать уведомление
+  function showNotification(message) {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.bottom = '80px';
+    notification.style.left = '50%';
+    notification.style.transform = 'translateX(-50%)';
+    notification.style.backgroundColor = 'var(--primary)';
+    notification.style.color = 'white';
+    notification.style.padding = '0.75rem 1.5rem';
+    notification.style.borderRadius = 'var(--border-radius)';
+    notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+    notification.style.zIndex = '1000';
+    notification.style.transition = 'opacity 0.3s, transform 0.3s';
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(-50%) translateY(20px)';
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    // Показываем уведомление с анимацией
+    setTimeout(() => {
+      notification.style.opacity = '1';
+      notification.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
+
+    // Скрываем и удаляем уведомление через 3 секунды
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(-50%) translateY(20px)';
+
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    }, 3000);
+  }
+
+
+  // Создание диаграммы компетенций
+  function renderCompetenciesChart() {
+    const ctx = document.getElementById('competencies-chart').getContext('2d');
+
+    // Подготовка данных для диаграммы
+    const labels = competenciesData.map(item => item.id);
+    const names = competenciesData.map(item => item.name);
+    const scoreData = competenciesData.map(item => parseFloat(item.score.replace(',', '.').replace('%', '')));
+    const completenessData = competenciesData.map(item => parseFloat(item.completeness.replace(',', '.').replace('%', '')));
+    const accuracyData = competenciesData.map(item => parseFloat(item.accuracy.replace(',', '.').replace('%', '')));
+
+    // Создание диаграммы
+    const competenciesChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: names,
+        datasets: [
+          {
+            label: 'Оценка',
+            data: scoreData,
+            backgroundColor: 'rgba(16, 185, 129, 0.6)', // Зеленый
+            borderColor: 'rgba(5, 150, 105, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Полнота',
+            data: completenessData,
+            backgroundColor: 'rgba(251, 191, 36, 0.6)', // Желтый
+            borderColor: 'rgba(245, 158, 11, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Точность',
+            data: accuracyData,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)', // Синий
+            borderColor: 'rgba(37, 99, 235, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Процент (%)'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Компетенции'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Отображение сводки по процессам
+  function renderProcessesSummary() {
+    // Используем данные из Django
+    document.getElementById('processes-summary').innerHTML = `
+      <div class="summary-item">
+        <div class="summary-label">Общий балл</div>
+        <div class="summary-value score-${processesSummary.scoreClass}">${processesSummary.averagePoints}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Общая оценка</div>
+        <div class="summary-value score-${processesSummary.scoreClass}">${processesSummary.averageScore}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${processesSummary.scoreClass}" style="width: ${processesSummary.averageScore}%"></div>
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Общая полнота</div>
+        <div class="summary-value score-${processesSummary.completenessClass}">${processesSummary.averageCompleteness}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${processesSummary.completenessClass}" style="width: ${processesSummary.averageCompleteness}%"></div>
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Общая точность</div>
+        <div class="summary-value score-${processesSummary.accuracyClass}">${processesSummary.averageAccuracy}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${processesSummary.accuracyClass}" style="width: ${processesSummary.averageAccuracy}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Отображение единой таблицы процессов
+function renderProcessesTable() {
+  const wrapper = document.getElementById('processes-table-wrapper');
+
+  // Создаем HTML для таблицы
+  let html = `
+    <table class="unified-table">
+      <thead>
+        <tr>
+          <th rowspan="2" class="name-column">Название</th>
+          <th colspan="5" class="z-aspect">Обозначение Z-аспекта</th>
+          <th class="separator" rowspan="2"></th>
+          <th colspan="3" class="quality">Критерии качества</th>
+          <th class="separator" rowspan="2"></th>
+          <th colspan="3" class="incident">Штатные инциденты</th>
+          <th class="separator" rowspan="2"></th>
+          <th colspan="4" class="total">Всего</th>
+        </tr>
+        <tr>
+          <th>Всего</th>
+          <th colspan="2">Проверено</th>
+          <th colspan="2">Выполнено</th>
+
+          <th>Оценка</th>
+          <th>Полнота</th>
+          <th>Точность</th>
+
+          <th>Оценка</th>
+          <th>Полнота</th>
+          <th>Точность</th>
+
+          <th>Балл</th>
+          <th>Оценка</th>
+          <th>Полнота</th>
+          <th>Точность</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  // Добавляем строки для каждой группы процессов
+  processesData.forEach(group => {
+    // Заголовок группы
+    html += `
+      <tr class="">
+        <td class="group-header">${group.name}</td>
+        <td>${group.metrics.total || 0}</td>
+        <td>${group.metrics.checked || 0}</td>
+        <td class="score-${getScoreClass(group.metrics.checkedPercent)}">${group.metrics.checkedPercent || 0}%</td>
+        <td>${group.metrics.completed || 0}</td>
+        <td class="score-${getScoreClass(group.metrics.completedPercent)}">${group.metrics.completedPercent || 0}%</td>
+        <td class="separator"></td>
+        <td class="score-${getScoreClass(group.metrics.qualityScore)}">${group.metrics.qualityScore || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.qualityCompleteness)}">${group.metrics.qualityCompleteness || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.qualityAccuracy)}">${group.metrics.qualityAccuracy || 0}%</td>
+        <td class="separator"></td>
+        <td class="score-${getScoreClass(group.metrics.incidentScore)}">${group.metrics.incidentScore || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.incidentCompleteness)}">${group.metrics.incidentCompleteness || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.incidentAccuracy)}">${group.metrics.incidentAccuracy || 0}%</td>
+        <td class="separator"></td>
+        <td class="score-${getScoreClass(group.metrics.totalPoints)}">${group.metrics.totalPoints || 0}</td>
+        <td class="score-${getScoreClass(group.metrics.totalScore)}">${group.metrics.totalScore || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.totalCompleteness)}">${group.metrics.totalCompleteness || 0}%</td>
+        <td class="score-${getScoreClass(group.metrics.totalAccuracy)}">${group.metrics.totalAccuracy || 0}%</td>
+      </tr>
+    `;
+
+    // Процессы в группе
+    if (group.processes) {
+      group.processes.forEach(process => {
+        // Строка процесса
+        html += `
+          <tr class="">
+            <td class="process-row">${process.name}</td>
+            <td>${process.metrics.total || 0}</td>
+            <td>${process.metrics.checked || 0}</td>
+            <td class="score-${getScoreClass(process.metrics.checkedPercent)}">${process.metrics.checkedPercent || 0}%</td>
+            <td>${process.metrics.completed || 0}</td>
+            <td class="score-${getScoreClass(process.metrics.completedPercent)}">${process.metrics.completedPercent || 0}%</td>
+            <td class="separator"></td>
+            <td class="score-${getScoreClass(process.metrics.qualityScore)}">${process.metrics.qualityScore || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.qualityCompleteness)}">${process.metrics.qualityCompleteness || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.qualityAccuracy)}">${process.metrics.qualityAccuracy || 0}%</td>
+            <td class="separator"></td>
+            <td class="score-${getScoreClass(process.metrics.incidentScore)}">${process.metrics.incidentScore || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.incidentCompleteness)}">${process.metrics.incidentCompleteness || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.incidentAccuracy)}">${process.metrics.incidentAccuracy || 0}%</td>
+            <td class="separator"></td>
+            <td class="score-${getScoreClass(process.metrics.totalPoints)}">${process.metrics.totalPoints || 0}</td>
+            <td class="score-${getScoreClass(process.metrics.totalScore)}">${process.metrics.totalScore || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.totalCompleteness)}">${process.metrics.totalCompleteness || 0}%</td>
+            <td class="score-${getScoreClass(process.metrics.totalAccuracy)}">${process.metrics.totalAccuracy || 0}%</td>
+          </tr>
+        `;
+
+        // Критерии процесса
+        if (process.criteria) {
+          process.criteria.forEach(criterion => {
+            const statusIcon = criterion.yes === 'true' ? '<span class="status-icon yes">✓</span>' :
+                              criterion.yes === 'false' ? '<span class="status-icon no">✗</span>' :
+                              '<span class="status-icon neutral">-</span>';
+
+            html += `
+              <tr class="criteria-row">
+                <td class="criterion-cell">
+                  <span class="criterion-name">${criterion.name}</span>
+                  ${statusIcon}
+                </td>
+                <td colspan="5"></td>
+                <td class="separator"></td>
+            `;
+
+            if (criterion.metrics) {
+              html += `
+                <td>${criterion.metrics.score || 0}%</td>
+                <td>${criterion.metrics.completeness || 0}%</td>
+                <td>${criterion.metrics.accuracy || 0}%</td>
+                <td class="separator"></td>
+                <td>${criterion.metrics.incidentScore || 0}%</td>
+                <td>${criterion.metrics.incidentCompleteness || 0}%</td>
+                <td>${criterion.metrics.incidentAccuracy || 0}%</td>
+                <td class="separator"></td>
+                <td>${criterion.metrics.totalPoints || 0}</td>
+                <td>${criterion.metrics.totalScore || 0}%</td>
+                <td>${criterion.metrics.totalCompleteness || 0}%</td>
+                <td>${criterion.metrics.totalAccuracy || 0}%</td>
+              `;
+            } else {
+              html += `
+                <td colspan="3"></td>
+                <td class="separator"></td>
+                <td colspan="3"></td>
+                <td class="separator"></td>
+                <td colspan="4"></td>
+              `;
+            }
+
+            html += `</tr>`;
+          });
+        }
+      });
+    }
+  });
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  // Вставляем HTML в контейнер
+  wrapper.innerHTML = html;
+}
+
+  // Вспомогательная функция для определения класса оценки
+  function getScoreClass(value) {
+    const numValue = parseFloat(value);
+    return numValue >= 90 ? 'high' : numValue >= 70 ? 'medium' : 'low';
+  }
+
+  // Инициализация при загрузке страницы
+  document.addEventListener('DOMContentLoaded', () => {
+    // Отображаем данные компетенций
+    renderCompetenciesSummary();
+    renderCompetenciesTable();
+    renderCompetenciesChart();
+
+    // Отображаем данные процессов
+    renderProcessesSummary();
+    renderProcessesTable();
+  });
+</script>
+</body>
+{% endblock %}

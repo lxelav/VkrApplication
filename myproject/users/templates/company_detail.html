@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ company.name }}</h1>
+
+<!-- Описание, Тех. Лидер и Дата создания -->
+<div>
+    <p><strong>Описание:</strong> {{ company.description }}</p>
+    {% if company.tech_lead %}
+        <p><strong>Технический руководитель:</strong> {{ company.tech_lead.username }}</p>
+    {% else %}
+        <p><strong>Технический руководитель:</strong> Не назначен</p>
+    {% endif %}
+    <p><strong>Дата создания:</strong> {{ company.created_at }}</p>
+</div>
+
+<hr>
+
+<!-- Верхние кнопки -->
+<div style="margin-bottom: 10px; display: flex; ">
+    <!-- Кнопка редактирования -->
+    <form action="{% url 'company_edit' company.id %}" method="post">
+        {% csrf_token %}
+        <button type="submit">✏️ Редактировать</button>
+    </form>
+
+    <!-- Кнопка удаления -->
+    <form action="{% url 'company_delete' company.id %}" method="post">
+        {% csrf_token %}
+        <button type="submit">🗑️ Удалить компанию</button>
+    </form>
+</div>
+
+
+<!-- Таблица: Роли и пользователи -->
+<h2>Сотрудники по ролям</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Роль</th>
+            {% for role in users_by_role %}
+                <th>{{ role }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Пользователи</td>
+            {% for role, users in users_by_role.items %}
+                <td>
+                    {% for user in users %}
+                        <p>{{ user.username }}</p>
+                    {% empty %}
+                        <p>Нет пользователей</p>
+                    {% endfor %}
+                </td>
+            {% endfor %}
+        </tr>
+    </tbody>
+</table>
+
+<hr>
+
+
+{% endblock %}

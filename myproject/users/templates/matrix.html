@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Матрица компетенций</title>
+  <style>
+    /* Основные стили */
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #dbeafe;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --red-500: #ef4444;
+      --border-radius: 0.5rem;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.5;
+      color: var(--gray-800);
+      background-color: #fff;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Компоненты */
+    .card {
+      background-color: #fff;
+      border-radius: var(--border-radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--gray-700);
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus, .textarea:focus, .select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-size: 0.875rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--gray-100);
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .flex-col {
+      flex-direction: column;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .gap-2 {
+      gap: 0.5rem;
+    }
+
+    .w-full {
+      width: 100%;
+    }
+
+    .mt-2 {
+      margin-top: 0.5rem;
+    }
+
+    .mt-4 {
+      margin-top: 1rem;
+    }
+
+    .mb-2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .mb-4 {
+      margin-bottom: 1rem;
+    }
+
+    .ml-2 {
+      margin-left: 0.5rem;
+    }
+
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+
+    .p-2 {
+      padding: 0.5rem;
+    }
+
+    .p-4 {
+      padding: 1rem;
+    }
+
+    .rounded {
+      border-radius: var(--border-radius);
+    }
+
+    .border {
+      border: 1px solid var(--gray-200);
+    }
+
+    .bg-blue-50 {
+      background-color: var(--primary-light);
+    }
+
+    .text-sm {
+      font-size: 0.875rem;
+    }
+
+    .text-xs {
+      font-size: 0.75rem;
+    }
+
+    .text-gray-500 {
+      color: var(--gray-500);
+    }
+
+    .text-blue-700 {
+      color: var(--primary-dark);
+    }
+
+    .font-medium {
+      font-weight: 500;
+    }
+
+    .font-semibold {
+      font-weight: 600;
+    }
+
+    /* Специфичные стили */
+    .competency-tag {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--primary-light);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--border-radius);
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .competency-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--red-500);
+      margin-left: 0.25rem;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .matrix-table th, .matrix-table td {
+      border: 1px solid var(--gray-300);
+      padding: 0.5rem;
+    }
+
+    .matrix-table th {
+      background-color: var(--gray-100);
+      text-align: left;
+    }
+
+    .matrix-table tr.header-row {
+      background-color: var(--primary-light);
+    }
+
+    .matrix-table input[type="number"] {
+      width: 3rem;
+      text-align: center;
+      padding: 0.25rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 0.25rem;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+    }
+
+    .scroll-area {
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      border: 1px solid var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Матрица компетенций</h1>
+
+    <div id="no-data-alert" class="alert" style="display: none;">
+      Нет данных чек-листа. Пожалуйста, <a href="checklist.html">создайте чек-лист</a> сначала.
+    </div>
+
+    <div class="card">
+      <h2>Матрица компетенций: <span id="matrix-job-title"></span></h2>
+      <div class="form-group">
+        <label for="new-competency">Добавить компетенцию</label>
+        <div class="flex gap-2">
+          <input type="text" id="new-competency" class="input" placeholder="Введите название компетенции" style="flex: 1;">
+          <button class="btn btn-primary" onclick="addCompetency()">
+            <span class="mr-2">+</span> Добавить
+          </button>
+        </div>
+      </div>
+      <div id="competencies-container" class="mt-4">
+        <!-- Компетенции будут добавляться здесь -->
+      </div>
+    </div>
+
+    <div id="matrix-container" class="scroll-area">
+      <!-- Матрица компетенций будет генерироваться здесь -->
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-outline" onclick="goToChecklist()">
+        <span class="mr-2">←</span> Назад к чек-листу
+      </button>
+      <button class="btn btn-primary" onclick="saveMatrix()">
+        <span class="mr-2">💾</span> Сохранить матрицу компетенций
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Структура данных
+    let jobTitle = '';
+    let groups = [];
+    let competencies = [];
+    let ratings = {};
+
+    // Функции для матрицы компетенций
+    function addCompetency() {
+      const input = document.getElementById('new-competency');
+      const value = input.value.trim();
+
+      if (value) {
+        competencies.push(value);
+        input.value = '';
+        renderCompetencies();
+        generateMatrix();
+      }
+    }
+
+    function removeCompetency(index) {
+      competencies.splice(index, 1);
+      renderCompetencies();
+      generateMatrix();
+    }
+
+    function renderCompetencies() {
+      const container = document.getElementById('competencies-container');
+
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (competencies.length === 0) return;
+
+      competencies.forEach((comp, index) => {
+        const tag = document.createElement('span');
+        tag.className = 'competency-tag';
+        tag.innerHTML = `
+          ${comp}
+          <button onclick="removeCompetency(${index})">×</button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    function generateMatrix() {
+      const container = document.getElementById('matrix-container');
+
+      if (!container  {
+      const container = document.getElementById('matrix-container');
+
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (competencies.length === 0) {
+        container.innerHTML = `
+          <div class="card">
+            <div class="text-center text-gray-500 p-4">
+              Добавьте хотя бы одну компетенцию для создания матрицы
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      groups.forEach(group => {
+        if (group.processes.length === 0) return;
+
+        const groupCard = document.createElement('div');
+        groupCard.className = 'card';
+
+        groupCard.innerHTML = `
+          <h3>${group.name}</h3>
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Процесс / Критерий</th>
+                ${competencies.map(comp => `<th>${comp}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${generateMatrixRows(group)}
+            </tbody>
+          </table>
+        `;
+
+        container.appendChild(groupCard);
+      });
+    }
+
+    function generateMatrixRows(group) {
+      let rows = '';
+
+      group.processes.forEach(process => {
+        // Заголовок процесса
+        rows += `
+          <tr class="header-row">
+            <td colspan="${competencies.length + 1}" class="font-medium">${process.name}</td>
+          </tr>
+        `;
+
+        // Строки для критериев
+        const criteria = process.criteria.split(';').filter(c => c.trim());
+        criteria.forEach((criterion, critIdx) => {
+          rows += `
+            <tr>
+              <td class="pl-6 text-sm">${criterion.trim()}</td>
+              ${competencies.map((_, compIndex) => `
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value="${getRating(group.id, `${process.id}-crit-${critIdx}`, compIndex)}"
+                    onchange="updateRating('${group.id}', '${process.id}-crit-${critIdx}', ${compIndex}, this.value)"
+                  >
+                </td>
+              `).join('')}
+            </tr>
+          `;
+        });
+
+        // Строки для инцидентов
+        if (process.incidents.length > 0) {
+          rows += `
+            <tr>
+              <td colspan="${competencies.length + 1}" class="pl-6 text-sm font-medium text-blue-700">
+                Обработка штатных инцидентов:
+              </td>
+            </tr>
+          `;
+
+          process.incidents.forEach((incident, incIdx) => {
+            rows += `
+              <tr>
+                <td class="pl-8 text-sm">
+                  <div class="font-medium">${incident.description}</div>
+                  <div class="mt-2 text-xs text-gray-500">Решение: ${incident.solution}</div>
+                </td>
+                ${competencies.map((_, compIndex) => `
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value="${getRating(group.id, `${process.id}-inc-${incIdx}`, compIndex)}"
+                      onchange="updateRating('${group.id}', '${process.id}-inc-${incIdx}', ${compIndex}, this.value)"
+                    >
+                  </td>
+                `).join('')}
+              </tr>
+            `;
+          });
+        }
+      });
+
+      return rows;
+    }
+
+    function updateRating(groupId, itemId, competencyIndex, value) {
+      const numValue = Math.min(10, Math.max(0, parseInt(value) || 0));
+
+      if (!ratings[groupId]) {
+        ratings[groupId] = {};
+      }
+
+      if (!ratings[groupId][itemId]) {
+        ratings[groupId][itemId] = {};
+      }
+
+      ratings[groupId][itemId][competencyIndex] = numValue;
+    }
+
+    function getRating(groupId, itemId, competencyIndex) {
+      if (!ratings[groupId] || !ratings[groupId][itemId] || ratings[groupId][itemId][competencyIndex] === undefined) {
+        return 0;
+      }
+
+      return ratings[groupId][itemId][competencyIndex];
+    }
+
+    // Сохранение данных
+    function saveMatrix() {
+      // Сохраняем в localStorage
+      const data = {
+        jobTitle,
+        groups,
+        competencies,
+        ratings,
+        timestamp: new Date().toISOString()
+      };
+
+      localStorage.setItem('competencyMatrix', JSON.stringify(data));
+      alert('Матрица компетенций сохранена!');
+    }
+
+    // Переход к чек-листу
+    function goToChecklist() {
+      window.location.href = 'checklist.html';
+    }
+
+    // Инициализация
+    function init() {
+      // Загружаем данные чек-листа
+      const savedChecklist = localStorage.getItem('checklist');
+      if (savedChecklist) {
+        try {
+          const data = JSON.parse(savedChecklist);
+          jobTitle = data.jobTitle || '';
+          groups = data.groups || [];
+
+          // Обновляем заголовок
+          document.getElementById('matrix-job-title').textContent = jobTitle;
+        } catch (e) {
+          console.error('Ошибка при загрузке данных чек-листа:', e);
+          document.getElementById('no-data-alert').style.display = 'block';
+          return;
+        }
+      } else {
+        // Если нет данных чек-листа, показываем предупреждение
+        document.getElementById('no-data-alert').style.display = 'block';
+        return;
+      }
+
+      // Загружаем сохраненную матрицу, если есть
+      const savedMatrix = localStorage.getItem('competencyMatrix');
+      if (savedMatrix) {
+        try {
+          const data = JSON.parse(savedMatrix);
+          competencies = data.competencies || [];
+          ratings = data.ratings || {};
+
+          renderCompetencies();
+          generateMatrix();
+        } catch (e) {
+          console.error('Ошибка при загрузке сохраненной матрицы:', e);
+        }
+      }
+
+      // Если нет сохраненной матрицы, просто генерируем пустую
+      if (competencies.length === 0) {
+        generateMatrix();
+      }
+    }
+
+    // Запускаем инициализацию при загрузке страницы
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

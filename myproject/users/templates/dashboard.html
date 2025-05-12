@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-light: #93c5fd;
+        --gray-light: #f3f4f6;
+        --gray-medium: #9ca3af;
+        --gray-dark: #4b5563;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 8px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .welcome-card {
+        background-color: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .welcome-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .welcome-text {
+        color: var(--gray-dark);
+        margin-bottom: 20px;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+    }
+
+    .action-card {
+        background-color: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .action-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .action-icon {
+        font-size: 48px;
+        color: var(--primary-color);
+        margin-bottom: 16px;
+    }
+
+    .action-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #111827;
+    }
+
+    .action-description {
+        font-size: 14px;
+        color: var(--gray-dark);
+    }
+
+    .action-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        height: 100%;
+        width: 100%;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .quick-actions {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="welcome-card">
+        <h1 class="welcome-title">Добро пожаловать, {{ user.username }}</h1>
+        <p class="welcome-text">Вы успешно вошли в систему. Воспользуйтесь навигационным меню.</p>
+
+    </div>
+    </div>
+</div>
+{% endblock %}

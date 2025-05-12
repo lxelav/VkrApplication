@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать компанию{% endblock %}
+
+{% block content %}
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.section-title {
+    font-size: 32px;
+    margin-bottom: 30px;
+    color: #1a202c;
+}
+
+.card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2d3748;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.form-errors p {
+    color: #e53e3e;
+    font-size: 14px;
+    margin: 5px 0 0 0;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+}
+
+.button {
+    background-color: #3182ce;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-decoration: none;
+}
+
+.button:hover {
+    background-color: #2b6cb0;
+}
+
+.button-outline {
+    background-color: transparent;
+    border: 2px solid #3182ce;
+    color: #3182ce;
+}
+
+.button-outline:hover {
+    background-color: #ebf8ff;
+}
+
+</style>
+<div class="container">
+    <h1 class="section-title">Редактировать компанию: {{ company.name }}</h1>
+
+    <div class="card">
+        <form method="post" class="form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="form-errors">
+                            {% for error in field.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <button type="submit" class="button">Сохранить изменения</button>
+                <a href="{% url 'company_detail' company.id %}" class="button button-outline">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

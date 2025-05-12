@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать компанию{% endblock %}
+
+{% block content %}
+<h1>Редактировать компанию: {{ company.name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+     {% for field in form %}
+        <div>
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+
+            {% if field.errors %}
+                <div style="display:none;">
+                    {% for error in field.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div> <br>
+    {% endfor %}
+    <br>
+    <button type="submit">Сохранить изменения</button>
+</form>
+
+<a href="{% url 'company_detail' company.id %}">
+    <button type="button">Отмена</button>
+</a>
+{% endblock %}

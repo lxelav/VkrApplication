@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Создание предприятия{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-light: #93c5fd;
+        --gray-light: #f3f4f6;
+        --gray-medium: #9ca3af;
+        --gray-dark: #4b5563;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 8px;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .card {
+        background-color: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .form-header {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .form-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--gray-dark);
+    }
+
+    /* Стили для полей формы */
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="password"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--gray-medium);
+        border-radius: var(--radius);
+        font-size: 16px;
+        transition: border-color 0.2s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="url"]:focus,
+    input[type="number"]:focus,
+    input[type="tel"]:focus,
+    input[type="password"]:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        padding-right: 40px;
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    /* Стили для чекбоксов и радиокнопок */
+    input[type="checkbox"],
+    input[type="radio"] {
+        margin-right: 8px;
+    }
+
+    /* Стили для кнопки */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        border-radius: var(--radius);
+        border: none;
+        font-weight: 500;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #2563eb;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+        margin-top: 16px;
+    }
+
+    .back-link:hover {
+        color: #2563eb;
+        text-decoration: underline;
+    }
+
+    /* Стили для отображения ошибок */
+    .errorlist {
+        list-style: none;
+        color: #ef4444;
+        margin: 4px 0 0;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    /* Стили для подсказок */
+    .helptext {
+        display: block;
+        font-size: 14px;
+        color: var(--gray-medium);
+        margin-top: 4px;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .container {
+            padding: 16px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-title {
+            font-size: 24px;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="card">
+        <div class="form-header">
+            <h1 class="form-title">Создание нового предприятия</h1>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}:</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <span class="helptext">{{ field.help_text }}</span>
+                    {% endif %}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+            </div>
+        </form>
+
+        <a href="{% url 'company_list' %}" class="back-link">← Назад к списку</a>
+    </div>
+</div>
+{% endblock %}

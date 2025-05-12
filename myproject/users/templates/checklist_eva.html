@@ -1,0 +1,1643 @@
+{% extends 'base.html' %}
+
+{% block title %}Оценка чек-листа{% endblock %}
+
+{% block content %}
+<style>
+  /* Основные стили */
+  :root {
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-light: #dbeafe;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --red-500: #ef4444;
+    --yellow-300: #fcd34d;
+    --yellow-400: #fbbf24;
+    --green-500: #10b981;
+    --green-600: #059669;
+    --border-radius: 0.5rem;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+    color: var(--gray-800);
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Компоненты */
+  .card {
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--gray-200);
+  }
+
+  .tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .tab {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--gray-700);
+  }
+
+  .input, .textarea, .select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .input:focus, .textarea:focus, .select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+
+  .textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-700);
+  }
+
+  .btn-outline:hover {
+    background-color: var(--gray-100);
+  }
+
+  .btn-danger {
+    background-color: var(--red-500);
+    color: white;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-icon {
+    padding: 0.25rem;
+    border-radius: 50%;
+  }
+
+  .flex {
+    display: flex;
+  }
+
+  .flex-col {
+    flex-direction: column;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .justify-between {
+    justify-content: space-between;
+  }
+
+  .gap-2 {
+    gap: 0.5rem;
+  }
+
+  .gap-4 {
+    gap: 1rem;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  .mt-2 {
+    margin-top: 0.5rem;
+  }
+
+  .mt-4 {
+    margin-top: 1rem;
+  }
+
+  .mb-2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 1rem;
+  }
+
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
+
+  .mr-2 {
+    margin-right: 0.5rem;
+  }
+
+  .p-2 {
+    padding: 0.5rem;
+  }
+
+  .p-4 {
+    padding: 1rem;
+  }
+
+  .rounded {
+    border-radius: var(--border-radius);
+  }
+
+  .border {
+    border: 1px solid var(--gray-200);
+  }
+
+  .bg-blue-50 {
+    background-color: var(--primary-light);
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  .text-gray-500 {
+    color: var(--gray-500);
+  }
+
+  .text-blue-700 {
+    color: var(--primary-dark);
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .font-semibold {
+    font-weight: 600;
+  }
+
+  /* Специфичные стили для оценки */
+  .evaluation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+  }
+
+  .evaluation-table th, .evaluation-table td {
+    border: 1px solid var(--gray-300);
+    padding: 0.5rem;
+    vertical-align: top;
+  }
+
+  .evaluation-table th {
+    background-color: var(--gray-100);
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .evaluation-table tr.group-header {
+    background-color: var(--primary-dark);
+    color: blue;
+  }
+
+  .evaluation-table tr.subgroup-header {
+    background-color: var(--primary-light);
+  }
+
+  .evaluation-table tr.process-row {
+    background-color: var(--gray-100);
+  }
+
+  .evaluation-table tr.criteria-row td:first-child {
+    padding-left: 2rem;
+  }
+
+  .evaluation-table tr.incident-header td {
+    background-color: var(--gray-200);
+    font-weight: 500;
+    padding-left: 2rem;
+  }
+
+  .evaluation-table tr.incident-row td:first-child {
+    padding-left: 3rem;
+  }
+
+  .evaluation-table tr.incident-row td:nth-child(2) {
+    padding-left: 3rem;
+  }
+
+  .evaluation-table .status-select {
+    width: 100%;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--gray-300);
+  }
+
+  .evaluation-table .rating-select {
+    width: 100%;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--gray-300);
+  }
+
+  .evaluation-table .method-select {
+    width: 100%;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--gray-300);
+  }
+
+  .status-not-checked {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .status-completed {
+    background-color: var(--green-500);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .status-not-completed {
+    background-color: var(--yellow-400);
+    color: var(--gray-800);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .rating-0 {
+    background-color: var(--red-500);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .rating-1 {
+    background-color: var(--yellow-400);
+    color: var(--gray-800);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .rating-2 {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .rating-3 {
+    background-color: var(--green-500);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .method-tag {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    display: inline-block;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+  }
+
+  .scroll-area {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+    padding-right: 0.5rem;
+  }
+
+  .numbering {
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-right: 0.5rem;
+  }
+
+  .summary-card {
+    background-color: var(--gray-100);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .progress-bar {
+    height: 0.5rem;
+    background-color: var(--gray-200);
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-top: 0.25rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--primary);
+  }
+
+  /* Мобильные стили */
+  .mobile-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+  }
+
+  .mobile-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+  }
+
+  .mobile-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .mobile-body {
+    padding-top: calc(var(--header-height) + 1rem);
+    padding-bottom: calc(var(--footer-height) + 1rem);
+  }
+
+  .mobile-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--footer-height);
+    background-color: white;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 1rem;
+  }
+
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .mobile-tab.active {
+    color: var(--primary);
+  }
+
+  .mobile-tab-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .mobile-cards {
+    display: none;
+  }
+
+  .process-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+  }
+
+  .process-header {
+    padding: 1rem;
+    background-color: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    position: relative;
+  }
+
+  .process-title {
+    font-weight: 600;
+    margin-right: 2rem;
+  }
+
+  .process-status-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .process-content {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-speed) ease, padding var(--transition-speed) ease;
+  }
+
+  .process-card.expanded .process-content {
+    padding: 1rem;
+    max-height: 2000px; /* Достаточно большое значение */
+  }
+
+  .process-toggle {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+
+  .process-card.expanded .process-toggle {
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  .criteria-item {
+    border-top: 1px solid var(--gray-200);
+    padding-top: 1rem;
+    margin-top: 1rem;
+  }
+
+  .criteria-item:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .criteria-text {
+    margin-bottom: 0.5rem;
+  }
+
+  .evaluation-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .control-group {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .control-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  .incident-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--gray-300);
+    padding-top: 1rem;
+  }
+
+  .incident-header {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .incident-item {
+    background-color: var(--gray-100);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .incident-description {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .incident-solution {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 0.75rem;
+  }
+
+  .mobile-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .search-container {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+  }
+
+  .search-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-500);
+  }
+
+  .filter-container {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filter-select {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    background-color: white;
+  }
+
+  .group-navigation {
+    margin-bottom: 1rem;
+  }
+
+  .group-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    background-color: white;
+  }
+
+  .mobile-progress {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--gray-200);
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .floating-action-button {
+    position: fixed;
+    right: 1.5rem;
+    bottom: calc(var(--footer-height) + 1.5rem);
+    z-index: 90;
+  }
+
+  .fab-main {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s, background-color 0.3s;
+  }
+
+  .fab-main:hover, .fab-main.active {
+    background-color: var(--primary-dark);
+  }
+
+  .fab-main.active {
+    transform: rotate(45deg);
+  }
+
+  .fab-options {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .fab-options.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .fab-option {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: white;
+    color: var(--gray-700);
+    font-size: 1.25rem;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fab-option:hover {
+    background-color: var(--gray-100);
+  }
+
+  .fab-label {
+    position: absolute;
+    right: 60px;
+    background-color: var(--gray-800);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .fab-option:hover .fab-label {
+    opacity: 1;
+  }
+
+  .swipe-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+  }
+
+  .swipe-left, .swipe-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .swipe-arrow {
+    margin: 0 0.25rem;
+  }
+
+  .offline-indicator {
+    background-color: var(--red-500);
+    color: white;
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: 500;
+    display: none;
+  }
+
+  .offline-indicator.active {
+    display: block;
+  }
+
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--gray-500);
+  }
+
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-500);
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Адаптивные стили */
+  @media (max-width: 768px) {
+    .container {
+      padding: 0.5rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+    }
+
+    .card {
+      padding: 1rem;
+    }
+
+    .desktop-view {
+      display: none;
+    }
+
+    .mobile-cards {
+      display: block;
+    }
+
+    .actions {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .actions .btn {
+      width: 100%;
+    }
+
+    .scroll-area {
+      max-height: none;
+      padding-right: 0;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .mobile-header, .mobile-footer, .floating-action-button {
+      display: none;
+    }
+
+    .mobile-body {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    body {
+      padding-bottom: 0;
+    }
+  }
+
+  /* Стили для печати */
+  @media print {
+    .mobile-header, .mobile-footer, .floating-action-button, .mobile-filters, .group-navigation {
+      display: none !important;
+    }
+
+    .mobile-body {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    body {
+      padding-bottom: 0;
+    }
+
+    .process-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border: 1px solid #000;
+      box-shadow: none;
+      margin-bottom: 1rem;
+    }
+
+    .process-content {
+      max-height: none !important;
+      padding: 1rem !important;
+      display: block !important;
+    }
+
+    .process-toggle {
+      display: none;
+    }
+
+    .evaluation-controls select {
+      border: 1px solid #000;
+    }
+
+    .status-not-checked, .status-completed, .status-not-completed,
+    .rating-0, .rating-1, .rating-2, .rating-3, .method-tag {
+      border: 1px solid #000;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+
+</style>
+
+<body>
+<div class="mobile-body">
+<div class="container">
+  <h1>Оценка чек-листа</h1>
+
+  <div class="card">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h2 id="job-title-display">Название должности: {{ jobTitle }}</h2>
+        <p class="text-gray-500" id="evaluation-date">Дата оценки: {{ evaluation_date|date:"Y-m-d H:i:s" }}</p>
+
+        <!-- Новое поле ввода ФИО оцениваемого -->
+        <label for="employee-name" class="block mt-2 text-sm font-medium text-gray-700">ФИО оцениваемого:</label>
+        <input type="text" id="employee-name" placeholder="Введите ФИО" class="form-input w-full border px-3 py-2 rounded mt-1" required/>
+
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Сводка оценки</h3>
+      <div class="summary-item">
+        <span>Всего процессов:</span>
+        <span id="total-processes">0</span>
+      </div>
+      <div class="summary-item">
+        <span>Проверено процессов:</span>
+        <span id="checked-processes">0</span>
+      </div>
+      <div class="summary-item">
+        <span>Выполнено процессов:</span>
+        <span id="completed-processes">0</span>
+      </div>
+      <div class="summary-item">
+        <span>Не выполнено процессов:</span>
+        <span id="not-completed-processes">0</span>
+      </div>
+      <div class="summary-item">
+        <span>Прогресс оценки:</span>
+        <span id="evaluation-progress">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-area" id="evaluation-container">
+    <!-- Здесь будет отображаться содержимое чек-листа для оценки -->
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-outline" onclick="history.back()">
+      <span class="mr-2">←</span> Назад
+    </button>
+    <button class="btn btn-primary" onclick="sendEvaluationData(false)">
+      <span class="mr-2">💾</span> Сохранить оценку
+    </button>
+    <button class="btn btn-primary" onclick="sendEvaluationData(true)">
+      <span class="mr-2">✅</span> Закончить оценку
+    </button>
+    <button class="btn btn-primary" onclick="exportEvaluation()">
+      <span class="mr-2">📊</span> Экспортировать результаты
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // Структура данных для оценки
+  let evaluationData = {
+    checklistId: '',
+    jobTitle: '',
+    evaluationDate: new Date().toISOString(),
+    evaluator: '',
+    groups: []
+  };
+
+
+  // Инициализация данных оценки на основе чек-листа
+  function initializeEvaluationData(checklistData) {
+    evaluationData = {
+      checklistId: 'checklist',
+      jobTitle: checklistData.jobTitle || '???',
+      evaluationDate: new Date().toISOString(),
+      evaluator: '',
+      groups: [],
+      companyId: '',
+    };
+
+    // Копируем структуру групп из чек-листа и добавляем поля для оценки
+    checklistData.groups.forEach(group => {
+      const evaluationGroup = {
+        id: group.id,
+        name: group.name,
+        subgroups: []
+      };
+
+      group.subgroups.forEach(subgroup => {
+        const evaluationSubgroup = {
+          id: subgroup.id,
+          name: subgroup.name,
+          processes: []
+        };
+
+        subgroup.processes.forEach(process => {
+          const evaluationProcess = {
+            id: process.id,
+            name: process.name,
+            status: 'not-checked', // not-checked, completed, not-completed
+            criteria: [],
+            incidents: []
+          };
+
+          // Добавляем критерии для оценки
+          if (process.criteria) {
+            const criteriaList = process.criteria.split(';').filter(c => c.trim());
+            criteriaList.forEach((criterion, index) => {
+              evaluationProcess.criteria.push({
+                id: `${process.id}-crit-${index}`,
+                text: criterion.trim(),
+                rating: -1, // -1: не проверен, 0-3: оценка
+                method: '' // наблюдение, практика, тест, опрос
+              });
+            });
+          }
+
+          // Добавляем инциденты для оценки
+          if (process.incidents && process.incidents.length > 0) {
+            process.incidents.forEach(incident => {
+              evaluationProcess.incidents.push({
+                id: incident.id,
+                description: incident.description,
+                solution: incident.solution,
+                rating: -1, // -1: не проверен, 0-3: оценка
+                method: '' // наблюдение, практика, тест, опрос
+              });
+            });
+          }
+
+          evaluationSubgroup.processes.push(evaluationProcess);
+        });
+
+        evaluationGroup.subgroups.push(evaluationSubgroup);
+      });
+
+      evaluationData.groups.push(evaluationGroup);
+    });
+  }
+
+
+  // Отображение таблицы для оценки
+  function renderEvaluationTable() {
+    const container = document.getElementById('evaluation-container');
+    container.innerHTML = '';
+
+    evaluationData.groups.forEach(group => {
+      // Создаем таблицу для группы
+      const groupTable = document.createElement('table');
+      groupTable.className = 'evaluation-table';
+
+      // Заголовок группы
+      const groupHeader = document.createElement('tr');
+      groupHeader.className = 'group-header';
+      groupHeader.innerHTML = `
+        <th colspan="4" >${group.name}</th>
+      `;
+      groupTable.appendChild(groupHeader);
+
+      // Заголовки столбцов
+      const columnHeaders = document.createElement('tr');
+      columnHeaders.innerHTML = `
+        <th style="width: 50%">Процесс / Критерий</th>
+        <th style="width: 16%">Статус</th>
+        <th style="width: 17%">Оценка</th>
+        <th style="width: 17%">Метод</th>
+      `;
+      groupTable.appendChild(columnHeaders);
+
+      // Содержимое группы
+      group.subgroups.forEach(subgroup => {
+        // Заголовок подгруппы
+        const subgroupHeader = document.createElement('tr');
+        subgroupHeader.className = 'subgroup-header';
+        subgroupHeader.innerHTML = `
+          <td colspan="4"><strong>${subgroup.name || 'Подгруппа без названия'}</strong></td>
+        `;
+        groupTable.appendChild(subgroupHeader);
+
+        // Процессы подгруппы
+        subgroup.processes.forEach(process => {
+          // Строка процесса
+          const processRow = document.createElement('tr');
+          processRow.className = 'process-row';
+          processRow.innerHTML = `
+            <td><strong>${process.name || 'Процесс без названия'}</strong></td>
+            <td>
+              <select class="status-select" onchange="updateProcessStatus('${group.id}', '${subgroup.id}', '${process.id}', this.value)">
+                <option value="not-checked" ${process.status === 'not-checked' ? 'selected' : ''}>Не проверен</option>
+                <option value="completed" ${process.status === 'completed' ? 'selected' : ''}>Выполнен</option>
+                <option value="not-completed" ${process.status === 'not-completed' ? 'selected' : ''}>Не выполнен</option>
+              </select>
+            </td>
+            <td></td>
+            <td></td>
+          `;
+          groupTable.appendChild(processRow);
+
+          // Критерии процесса
+          process.criteria.forEach(criterion => {
+            const criteriaRow = document.createElement('tr');
+            criteriaRow.className = 'criteria-row';
+            criteriaRow.innerHTML = `
+              <td>${criterion.text}</td>
+              <td></td>
+              <td>
+                <select class="rating-select" onchange="updateCriteriaRating('${group.id}', '${subgroup.id}', '${process.id}', '${criterion.id}', this.value)">
+                  <option value="-1" ${criterion.rating === -1 ? 'selected' : ''}>Не проверен</option>
+                  <option value="0" ${criterion.rating === 0 ? 'selected' : ''}>0 - Недопустимо</option>
+                  <option value="1" ${criterion.rating === 1 ? 'selected' : ''}>1 - Допустимо</option>
+                  <option value="2" ${criterion.rating === 2 ? 'selected' : ''}>2 - С недостатками</option>
+                  <option value="3" ${criterion.rating === 3 ? 'selected' : ''}>3 - Полностью</option>
+                </select>
+              </td>
+              <td>
+                <select class="method-select" onchange="updateCriteriaMethod('${group.id}', '${subgroup.id}', '${process.id}', '${criterion.id}', this.value)">
+                  <option value="" ${criterion.method === '' ? 'selected' : ''}>Не ясен</option>
+                  <option value="observation" ${criterion.method === 'observation' ? 'selected' : ''}>Наблюдение</option>
+                  <option value="practice" ${criterion.method === 'practice' ? 'selected' : ''}>Практика</option>
+                  <option value="test" ${criterion.method === 'test' ? 'selected' : ''}>Тест</option>
+                  <option value="survey" ${criterion.method === 'survey' ? 'selected' : ''}>Опрос</option>
+                </select>
+              </td>
+            `;
+            groupTable.appendChild(criteriaRow);
+          });
+
+          // Инциденты процесса
+          if (process.incidents.length > 0) {
+            // Заголовок раздела инцидентов
+            const incidentHeader = document.createElement('tr');
+            incidentHeader.className = 'incident-header';
+            incidentHeader.innerHTML = `
+              <td colspan="4">Обработка штатных инцидентов</td>
+            `;
+            groupTable.appendChild(incidentHeader);
+
+            // Строки инцидентов
+            process.incidents.forEach(incident => {
+              const incidentRow = document.createElement('tr');
+              incidentRow.className = 'incident-row';
+              incidentRow.innerHTML = `
+                <td>
+                  <div><strong>${incident.description || 'Без описания'}</strong></div>
+                  <div class="text-sm text-gray-500 mt-1">Решение: ${incident.solution || 'Не указано'}</div>
+                </td>
+                <td></td>
+                <td>
+                  <select class="rating-select" onchange="updateIncidentRating('${group.id}', '${subgroup.id}', '${process.id}', '${incident.id}', this.value)">
+                    <option value="-1" ${incident.rating === -1 ? 'selected' : ''}>Не проверен</option>
+                    <option value="0" ${incident.rating === 0 ? 'selected' : ''}>0 - Недопустимо</option>
+                    <option value="1" ${incident.rating === 1 ? 'selected' : ''}>1 - Допустимо</option>
+                    <option value="2" ${incident.rating === 2 ? 'selected' : ''}>2 - С недостатками</option>
+                    <option value="3" ${incident.rating === 3 ? 'selected' : ''}>3 - Полностью</option>
+                  </select>
+                </td>
+                <td>
+                  <select class="method-select" onchange="updateIncidentMethod('${group.id}', '${subgroup.id}', '${process.id}', '${incident.id}', this.value)">
+                    <option value="" ${incident.method === '' ? 'selected' : ''}>Не ясен</option>
+                    <option value="observation" ${incident.method === 'observation' ? 'selected' : ''}>Наблюдение</option>
+                    <option value="practice" ${incident.method === 'practice' ? 'selected' : ''}>Практика</option>
+                    <option value="test" ${incident.method === 'test' ? 'selected' : ''}>Тест</option>
+                    <option value="survey" ${incident.method === 'survey' ? 'selected' : ''}>Опрос</option>
+                  </select>
+                </td>
+              `;
+              groupTable.appendChild(incidentRow);
+            });
+          }
+        });
+      });
+
+      // Добавляем таблицу группы в контейнер
+      container.appendChild(groupTable);
+    });
+  }
+
+  // Обновление статуса процесса
+  function updateProcessStatus(groupId, subgroupId, processId, status) {
+    const group = evaluationData.groups.find(g => g.id === groupId);
+    if (group) {
+      const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+      if (subgroup) {
+        const process = subgroup.processes.find(p => p.id === processId);
+        if (process) {
+          process.status = status;
+          updateSummary();
+        }
+      }
+    }
+  }
+
+  // Обновление оценки критерия
+  function updateCriteriaRating(groupId, subgroupId, processId, criteriaId, rating) {
+    const group = evaluationData.groups.find(g => g.id === groupId);
+    if (group) {
+      const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+      if (subgroup) {
+        const process = subgroup.processes.find(p => p.id === processId);
+        if (process) {
+          const criterion = process.criteria.find(c => c.id === criteriaId);
+          if (criterion) {
+            criterion.rating = parseInt(rating);
+            updateSummary();
+          }
+        }
+      }
+    }
+  }
+
+  // Обновление метода оценки критерия
+  function updateCriteriaMethod(groupId, subgroupId, processId, criteriaId, method) {
+    const group = evaluationData.groups.find(g => g.id === groupId);
+    if (group) {
+      const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+      if (subgroup) {
+        const process = subgroup.processes.find(p => p.id === processId);
+        if (process) {
+          const criterion = process.criteria.find(c => c.id === criteriaId);
+          if (criterion) {
+            criterion.method = method;
+            updateSummary();
+          }
+        }
+      }
+    }
+  }
+
+  // Обновление оценки инцидента
+  function updateIncidentRating(groupId, subgroupId, processId, incidentId, rating) {
+    const group = evaluationData.groups.find(g => g.id === groupId);
+    if (group) {
+      const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+      if (subgroup) {
+        const process = subgroup.processes.find(p => p.id === processId);
+        if (process) {
+          const incident = process.incidents.find(i => i.id === incidentId);
+          if (incident) {
+            incident.rating = parseInt(rating);
+            updateSummary();
+          }
+        }
+      }
+    }
+  }
+
+  // Обновление метода оценки инцидента
+  function updateIncidentMethod(groupId, subgroupId, processId, incidentId, method) {
+    const group = evaluationData.groups.find(g => g.id === groupId);
+    if (group) {
+      const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+      if (subgroup) {
+        const process = subgroup.processes.find(p => p.id === processId);
+        if (process) {
+          const incident = process.incidents.find(i => i.id === incidentId);
+          if (incident) {
+            incident.method = method;
+            updateSummary();
+          }
+        }
+      }
+    }
+  }
+
+  // Обновление сводки оценки
+  function updateSummary() {
+    let totalProcesses = 0;
+    let checkedProcesses = 0;
+    let completedProcesses = 0;
+    let notCompletedProcesses = 0;
+
+    evaluationData.groups.forEach(group => {
+      group.subgroups.forEach(subgroup => {
+        subgroup.processes.forEach(process => {
+          totalProcesses++;
+
+          if (process.status !== 'not-checked') {
+            checkedProcesses++;
+
+            if (process.status === 'completed') {
+              completedProcesses++;
+            } else if (process.status === 'not-completed') {
+              notCompletedProcesses++;
+            }
+          }
+        });
+      });
+    });
+
+    // Обновляем счетчики
+    document.getElementById('total-processes').textContent = totalProcesses;
+    document.getElementById('checked-processes').textContent = checkedProcesses;
+    document.getElementById('completed-processes').textContent = completedProcesses;
+    document.getElementById('not-completed-processes').textContent = notCompletedProcesses;
+
+    // Обновляем прогресс
+    const progressPercent = totalProcesses > 0 ? Math.round((checkedProcesses / totalProcesses) * 100) : 0;
+    document.getElementById('evaluation-progress').textContent = `${progressPercent}%`;
+    document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+  }
+
+  // Сохранение оценки
+  function sendEvaluationData(isFinal = false) {
+  const employeeNameInput = document.getElementById('employee-name');
+  if (employeeNameInput) {
+    evaluationData.employeeName = employeeNameInput.value.trim() || 'Без названия';
+  }
+  evaluationData.evaluationDate = new Date().toISOString();
+  evaluationData.status = isFinal ? 'completed' : 'draft';
+  evaluationData.checklistId = {{ checklistId }};
+  evaluationData.companyId = {{ companyId }};
+  evaluationData.fillingId = {{ fillingId }};
+
+  fetch('/submit-evaluation/', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRFToken': getCookie('csrftoken')
+  },
+  body: JSON.stringify(evaluationData)
+})
+.then(response => response.json())  // ← важно!
+.then(data => {
+  alert(isFinal ? 'Оценка завершена!' : 'Оценка сохранена.');
+  if (data.redirect_url) {
+    window.location.href = data.redirect_url;
+  }
+})
+.catch(error => {
+  console.error('Ошибка:', error);
+  alert('Произошла ошибка при отправке данных.');
+});
+
+
+  }
+
+  function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+  }
+
+
+  // Экспорт результатов оценки
+  function exportEvaluation() {
+    // Создаем текстовый отчет
+    let report = `ОТЧЕТ ПО ОЦЕНКЕ ЧЕК-ЛИСТА\n`;
+    report += `Должность: ${evaluationData.jobTitle}\n`;
+    report += `Дата оценки: ${new Date(evaluationData.evaluationDate).toLocaleDateString()}\n\n`;
+
+    // Добавляем сводку
+    let totalProcesses = 0;
+    let checkedProcesses = 0;
+    let completedProcesses = 0;
+    let notCompletedProcesses = 0;
+
+    evaluationData.groups.forEach(group => {
+      group.subgroups.forEach(subgroup => {
+        subgroup.processes.forEach(process => {
+          totalProcesses++;
+
+          if (process.status !== 'not-checked') {
+            checkedProcesses++;
+
+            if (process.status === 'completed') {
+              completedProcesses++;
+            } else if (process.status === 'not-completed') {
+              notCompletedProcesses++;
+            }
+          }
+        });
+      });
+    });
+
+    report += `СВОДКА:\n`;
+    report += `Всего процессов: ${totalProcesses}\n`;
+    report += `Проверено процессов: ${checkedProcesses}\n`;
+    report += `Выполнено процессов: ${completedProcesses}\n`;
+    report += `Не выполнено процессов: ${notCompletedProcesses}\n`;
+    report += `Прогресс оценки: ${totalProcesses > 0 ? Math.round((checkedProcesses / totalProcesses) * 100) : 0}%\n\n`;
+
+    // Добавляем детальную информацию
+    report += `ДЕТАЛЬНАЯ ИНФОРМАЦИЯ:\n\n`;
+
+    evaluationData.groups.forEach(group => {
+      report += `${group.name}\n`;
+      report += `${'='.repeat(group.name.length)}\n\n`;
+
+      group.subgroups.forEach(subgroup => {
+        report += `${subgroup.name || 'Подгруппа без названия'}\n`;
+        report += `${'-'.repeat((subgroup.name || 'Подгруппа без названия').length)}\n\n`;
+
+        subgroup.processes.forEach(process => {
+          const statusText = {
+            'not-checked': 'Не проверен',
+            'completed': 'Выполнен',
+            'not-completed': 'Не выполнен'
+          }[process.status];
+
+          report += `* ${process.name || 'Процесс без названия'} - ${statusText}\n`;
+
+          if (process.criteria.length > 0) {
+            report += `  Критерии:\n`;
+            process.criteria.forEach(criterion => {
+              const ratingText = criterion.rating === -1 ? 'Не проверен' : `${criterion.rating} - ${
+                criterion.rating === 0 ? 'Недопустимо' :
+                criterion.rating === 1 ? 'Допустимо' :
+                criterion.rating === 2 ? 'С недостатками' :
+                'Полностью'
+              }`;
+
+              const methodText = {
+                '': 'Не ясен',
+                'observation': 'Наблюдение',
+                'practice': 'Практика',
+                'test': 'Тест',
+                'survey': 'Опрос'
+              }[criterion.method];
+
+              report += `    - ${criterion.text}\n`;
+              report += `      Оценка: ${ratingText}, Метод: ${methodText}\n`;
+            });
+          }
+
+          if (process.incidents.length > 0) {
+            report += `  Инциденты:\n`;
+            process.incidents.forEach(incident => {
+              const ratingText = incident.rating === -1 ? 'Не проверен' : `${incident.rating} - ${
+                incident.rating === 0 ? 'Недопустимо' :
+                incident.rating === 1 ? 'Допустимо' :
+                incident.rating === 2 ? 'С недостатками' :
+                'Полностью'
+              }`;
+
+              const methodText = {
+                '': 'Не ясен',
+                'observation': 'Наблюдение',
+                'practice': 'Практика',
+                'test': 'Тест',
+                'survey': 'Опрос'
+              }[incident.method];
+
+              report += `    - ${incident.description || 'Без описания'}\n`;
+              report += `      Решение: ${incident.solution || 'Не указано'}\n`;
+              report += `      Оценка: ${ratingText}, Метод: ${methodText}\n`;
+            });
+          }
+
+          report += `\n`;
+        });
+      });
+    });
+
+    // Создаем ссылку для скачивания
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `evaluation_report_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Инициализация при загрузке страницы
+  document.addEventListener('DOMContentLoaded', () => {
+    const checklistData = {{ checklist_json|safe }};
+    const fillingData = {{ filling_json|safe }};
+
+    // Initialize with checklist structure
+    initializeEvaluationData(checklistData);
+
+    // If we have existing filling data, apply it
+    if (fillingData && Object.keys(fillingData).length > 0) {
+        // Apply employee name if available
+        if (fillingData.employeeName) {
+            document.getElementById('employee-name').value = fillingData.employeeName;
+        }
+
+        // Apply evaluation date
+        evaluationData.evaluationDate = fillingData.evaluationDate || new Date().toISOString();
+
+        // Apply group data if available
+        if (fillingData.groups && fillingData.groups.length > 0) {
+            fillingData.groups.forEach(fillingGroup => {
+                const group = evaluationData.groups.find(g => g.id === fillingGroup.id);
+                if (group) {
+                    fillingGroup.subgroups.forEach(fillingSubgroup => {
+                        const subgroup = group.subgroups.find(sg => sg.id === fillingSubgroup.id);
+                        if (subgroup) {
+                            fillingSubgroup.processes.forEach(fillingProcess => {
+                                const process = subgroup.processes.find(p => p.id === fillingProcess.id);
+                                if (process) {
+                                    // Apply process status
+                                    process.status = fillingProcess.status;
+
+                                    // Apply criteria ratings and methods
+                                    fillingProcess.criteria.forEach(fillingCriterion => {
+                                        const criterion = process.criteria.find(c => c.id === fillingCriterion.id);
+                                        if (criterion) {
+                                            criterion.rating = fillingCriterion.rating;
+                                            criterion.method = fillingCriterion.method;
+                                        }
+                                    });
+
+                                    // Apply incident ratings and methods
+                                    fillingProcess.incidents.forEach(fillingIncident => {
+                                        const incident = process.incidents.find(i => i.id === fillingIncident.id);
+                                        if (incident) {
+                                            incident.rating = fillingIncident.rating;
+                                            incident.method = fillingIncident.method;
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+
+    // Render the evaluation table with the loaded data
+    renderEvaluationTable();
+    updateSummary();
+});
+
+
+</script>
+</body>
+{% endblock %}

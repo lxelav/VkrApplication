@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Страница чек-листа</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-light: #93c5fd;
+            --gray-light: #f3f4f6;
+            --gray-medium: #9ca3af;
+            --gray-dark: #4b5563;
+            --success-color: #10b981;
+            --success-light: #d1fae5;
+            --warning-color: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger-color: #ef4444;
+            --danger-light: #fee2e2;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Шапка чек-листа */
+        .checklist-header {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .checklist-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+
+        .action-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-light);
+        }
+
+        .btn-edit:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .btn-delete {
+            background-color: white;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-light);
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-light);
+        }
+
+        .btn-evaluate {
+            background-color: white;
+            color: var(--success-color);
+            border: 1px solid var(--success-light);
+        }
+
+        .btn-evaluate:hover {
+            background-color: var(--success-light);
+        }
+
+        /* Секция опросов */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .survey-group {
+            margin-bottom: 24px;
+        }
+
+        .survey-status {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-completed {
+            background-color: var(--success-color);
+        }
+
+        .status-in-progress {
+            background-color: var(--warning-color);
+        }
+
+        .surveys-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .survey-card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 16px;
+            border: 1px solid var(--gray-light);
+            transition: transform 0.2s ease;
+        }
+
+        .survey-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .survey-person {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .survey-date {
+            color: var(--gray-medium);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .survey-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .survey-btn {
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .btn-results {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-results:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-continue {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .btn-continue:hover {
+            background-color: #d97706;
+        }
+
+        .btn-edit-survey {
+            background-color: var(--gray-light);
+            color: var(--gray-dark);
+        }
+
+        .btn-edit-survey:hover {
+            background-color: var(--gray-medium);
+            color: white;
+        }
+
+        .btn-delete-survey {
+            background-color: var(--danger-light);
+            color: var(--danger-color);
+        }
+
+        .btn-delete-survey:hover {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .action-buttons {
+                position: static;
+                margin-top: 16px;
+                margin-bottom: 16px;
+            }
+
+            .surveys-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .survey-actions {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка чек-листа -->
+        <div class="card checklist-header">
+            <h1 class="checklist-title">Чек-лист по должности {{ job_title }}</h1>
+
+            <div class="action-buttons">
+<!--                <button class="btn btn-edit">✏️ Редактировать</button>-->
+                <button class="btn btn-evaluate" onclick="window.location.href='{% url 'evaluate_checklist' checklist.id %}'">⭐ Оценить</button>
+                {% if user.role == 'admin' or user.role == 'tech_lead' or user.role == 'methodist'%}
+                <button class="btn btn-delete" onclick="window.location.href='{% url 'checklist_delete' checklist.id %}'">🗑️ Удалить</button>
+                {% endif %}
+                </div>
+        </div>
+
+
+        <div class="card">
+    <h2 class="section-title">Опросы по чек-листу</h2>
+
+    <div class="survey-group">
+        <h3 class="survey-status">
+            <span class="status-indicator status-completed"></span>
+            Завершенные
+        </h3>
+        <div class="surveys-list">
+            {% for filling in completed_fillings %}
+            <div class="survey-card">
+                <div class="survey-person">{{ filling.employee }}</div>
+                <div class="survey-date">Завершен: {{ filling.finished_at|date:"d E Y" }}</div>
+                <div class="survey-actions">
+                    <button class="survey-btn btn-results" data-filling-id="{{ filling.id }}" data-checklist-id="{{ filling.checklist.id }}">Результаты</button>
+                    {% if user.role == 'admin' or user.role == 'tech_lead'%}
+                    <button class="survey-btn btn-edit-survey" data-filling-id="{{ filling.id }}" data-checklist-id="{{ filling.checklist.id }}">Редактировать</button>
+                    {% endif %}
+                    <button class="survey-btn btn-delete-survey" data-filling-id="{{ filling.id }}" data-checklist-id="{{ filling.checklist.id }}">Удалить</button>
+                </div>
+            </div>
+            {% empty %}
+            <p>Нет завершенных оценок</p>
+            {% endfor %}
+        </div>
+    </div>
+           <script>
+
+  document.querySelectorAll('.btn-results').forEach(button => {
+    button.addEventListener('click', () => {
+      const fillingId = button.dataset.fillingId;
+      const checklistId = button.dataset.checklistId;
+      window.location.href = `/checklist/${checklistId}/filling/${fillingId}/results/`;
+    });
+  });
+
+  document.querySelectorAll('.btn-edit-survey').forEach(button => {
+    button.addEventListener('click', () => {
+      const fillingId = button.dataset.fillingId;
+      const checklistId = button.dataset.checklistId;
+      window.location.href = `/checklist/${checklistId}/filling/${fillingId}/edit/`;
+    });
+  });
+
+  document.querySelectorAll('.btn-delete-survey').forEach(button => {
+    button.addEventListener('click', () => {
+      const fillingId = button.dataset.fillingId;
+      const checklistId = button.dataset.checklistId;
+      if (confirm('Вы уверены, что хотите удалить эту оценку?')) {
+        fetch(`/checklist/${checklistId}/filling/${fillingId}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        }).then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Ошибка при удалении');
+          }
+        });
+      }
+    });
+  });
+</script>
+
+
+
+    <div class="survey-group">
+        <h3 class="survey-status">
+            <span class="status-indicator status-in-progress"></span>
+            В процессе
+        </h3>
+        <div class="surveys-list">
+            {% for filling in in_progress_fillings %}
+            <div class="survey-card">
+                <div class="survey-person">{{ filling.employee }}</div>
+                <div class="survey-date">Начат: {{ filling.started_at|date:"d E Y" }}</div>
+                <div class="survey-actions">
+                    <button class="survey-btn btn-continue" data-filling-id="{{ filling.id }}" data-checklist-id="{{ filling.checklist.id }}">Продолжить</button>
+                    <button class="survey-btn btn-delete-survey" data-filling-id="{{ filling.id }}" data-checklist-id="{{ filling.checklist.id }}">Удалить</button>
+                </div>
+            </div>
+            {% empty %}
+            <p>Нет активных оценок</p>
+            {% endfor %}
+        </div>
+
+                   <script>
+
+  document.querySelectorAll('.btn-continue').forEach(button => {
+    button.addEventListener('click', () => {
+      const fillingId = button.dataset.fillingId;
+      const checklistId = button.dataset.checklistId;
+      window.location.href = `/checklist/${checklistId}/filling/${fillingId}/edit/`;
+    });
+  });
+
+  document.querySelectorAll('.btn-delete-survey').forEach(button => {
+    button.addEventListener('click', () => {
+      const fillingId = button.dataset.fillingId;
+      const checklistId = button.dataset.checklistId;
+      if (confirm('Вы уверены, что хотите удалить эту оценку?')) {
+        fetch(`/checklist/${checklistId}/filling/${fillingId}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        }).then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Ошибка при удалении');
+          }
+        });
+      }
+    });
+  });
+</script>
+    </div>
+</div>
+
+    </div>
+</body>
+{% endblock %}

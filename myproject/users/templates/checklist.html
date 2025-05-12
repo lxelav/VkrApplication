@@ -1,0 +1,1085 @@
+{% extends 'base.html' %}
+
+{% block title %}Чек-лист и матрица компетенций{% endblock %}
+
+{% block content %}
+{% load static %}
+<style>
+    /* Основные стили */
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #dbeafe;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --red-500: #ef4444;
+      --border-radius: 0.5rem;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.5;
+      color: var(--gray-800);
+      background-color: #fff;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Компоненты */
+    .card {
+      background-color: #fff;
+      border-radius: var(--border-radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .tab {
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--gray-700);
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus, .textarea:focus, .select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-size: 0.875rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--gray-100);
+    }
+
+    .btn-danger {
+      background-color: var(--red-500);
+      color: white;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-icon {
+      padding: 0.25rem;
+      border-radius: 50%;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .flex-col {
+      flex-direction: column;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .gap-2 {
+      gap: 0.5rem;
+    }
+
+    .gap-4 {
+      gap: 1rem;
+    }
+
+    .w-full {
+      width: 100%;
+    }
+
+    .mt-2 {
+      margin-top: 0.5rem;
+    }
+
+    .mt-4 {
+      margin-top: 1rem;
+    }
+
+    .mb-2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .mb-4 {
+      margin-bottom: 1rem;
+    }
+
+    .ml-2 {
+      margin-left: 0.5rem;
+    }
+
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+
+    .p-2 {
+      padding: 0.5rem;
+    }
+
+    .p-4 {
+      padding: 1rem;
+    }
+
+    .rounded {
+      border-radius: var(--border-radius);
+    }
+
+    .border {
+      border: 1px solid var(--gray-200);
+    }
+
+    .bg-blue-50 {
+      background-color: var(--primary-light);
+    }
+
+    .text-sm {
+      font-size: 0.875rem;
+    }
+
+    .text-xs {
+      font-size: 0.75rem;
+    }
+
+    .text-gray-500 {
+      color: var(--gray-500);
+    }
+
+    .text-blue-700 {
+      color: var(--primary-dark);
+    }
+
+    .font-medium {
+      font-weight: 500;
+    }
+
+    .font-semibold {
+      font-weight: 600;
+    }
+
+    /* Специфичные стили */
+    .subgroup-item {
+      border: 1px solid var(--gray-300);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background-color: var(--gray-100);
+    }
+
+    .process-item {
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background-color: white;
+    }
+
+    .incident-item {
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-top: 0.5rem;
+      background-color: var(--gray-100);
+    }
+
+    .competency-tag {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--primary-light);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--border-radius);
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .competency-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--red-500);
+      margin-left: 0.25rem;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .matrix-table th, .matrix-table td {
+      border: 1px solid var(--gray-300);
+      padding: 0.5rem;
+    }
+
+    .matrix-table th {
+      background-color: var(--gray-100);
+      text-align: left;
+    }
+
+    .matrix-table tr.header-row {
+      background-color: var(--primary-light);
+    }
+
+    .matrix-table input[type="number"] {
+      width: 3rem;
+      text-align: center;
+      padding: 0.25rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 0.25rem;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+    }
+
+    .scroll-area {
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .numbering {
+      font-weight: 500;
+      color: var(--gray-600);
+      margin-right: 0.5rem;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+      .incident-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .incident-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+</style>
+
+<body>
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" data-tab="checklist">Чек-лист по должности</div>
+      <div class="tab" data-tab="matrix">Матрица компетенций</div>
+    </div>
+
+    <div class="tab-content active" id="checklist-tab">
+      <div class="card">
+        <h2>Создание чек-листа по должности {{ job_title_name }}</h2>
+<!--        <div class="form-group">-->
+<!--          <label for="job-title">Название должности</label>-->
+<!--          <input type="text" id="job-title" class="input" placeholder="Введите название должности">-->
+<!--        </div>-->
+      </div>
+
+      <div class="scroll-area">
+        <!-- Группа 1 -->
+        <div class="card">
+          <h3>1. Подготовка к работе</h3>
+          <div id="group-1-subgroups" class="subgroups-container">
+            <!-- Подгруппы будут добавляться здесь -->
+          </div>
+          <button class="btn btn-outline w-full" onclick="addSubgroup('1')">
+            <span class="mr-2">+</span> Добавить подгруппу
+          </button>
+        </div>
+
+        <!-- Группа 2 -->
+        <div class="card">
+          <h3>2. Выполнение производственного задания</h3>
+          <div id="group-2-subgroups" class="subgroups-container">
+            <!-- Подгруппы будут добавляться здесь -->
+          </div>
+          <button class="btn btn-outline w-full" onclick="addSubgroup('2')">
+            <span class="mr-2">+</span> Добавить подгруппу
+          </button>
+        </div>
+
+        <!-- Группа 3 -->
+        <div class="card">
+          <h3>3. Завершение работы</h3>
+          <div id="group-3-subgroups" class="subgroups-container">
+            <!-- Подгруппы будут добавляться здесь -->
+          </div>
+          <button class="btn btn-outline w-full" onclick="addSubgroup('3')">
+            <span class="mr-2">+</span> Добавить подгруппу
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-outline" onclick="history.back()">
+          <span class="mr-2">←</span> Назад
+        </button>
+        <button class="btn btn-primary" onclick="switchToMatrix()">
+          Перейти к матрице компетенций <span class="ml-2">→</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="matrix-tab">
+      <div class="card">
+        <h2>Матрица компетенций: <span id="matrix-job-title"></span></h2>
+        <div class="form-group">
+          <label for="new-competency">Добавить компетенцию</label>
+          <div class="flex gap-2">
+            <input type="text" id="new-competency" class="input" placeholder="Введите название компетенции" style="flex: 1;">
+            <button class="btn btn-primary" onclick="addCompetency()">
+              <span class="mr-2">+</span> Добавить
+            </button>
+          </div>
+        </div>
+        <div id="competencies-container" class="mt-4">
+          <!-- Компетенции будут добавляться здесь -->
+        </div>
+      </div>
+
+      <div id="matrix-container" class="scroll-area">
+        <!-- Матрица компетенций будет генерироваться здесь -->
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-outline" onclick="switchToChecklist()">
+          <span class="mr-2">←</span> Назад к чек-листу
+        </button>
+        <button class="btn btn-primary" onclick="saveAll()">
+          <span class="mr-2">💾</span> Сохранить чек-лист и матрицу компетенций
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <input type="hidden" id="job-title-id" value="{{ job_title_id }}">
+  <input type="hidden" id="company-id" value="{{ company_id }}">
+
+  <script>
+    // Структура данных
+    let jobTitleId = '';
+    let companyId = '';
+    let groups = [
+      { id: '1', name: 'Подготовка к работе', subgroups: [] },
+      { id: '2', name: 'Выполнение производственного задания', subgroups: [] },
+      { id: '3', name: 'Завершение работы', subgroups: [] }
+    ];
+    let competencies = [];
+    let ratings = {};
+
+    // Переключение вкладок
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+      document.getElementById(`${tabId}-tab`).classList.add('active');
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.getAttribute('data-tab'));
+      });
+    });
+
+    function switchToMatrix() {
+
+
+      // Генерируем матрицу
+      generateMatrix();
+
+      // Переключаем вкладку
+      switchTab('matrix');
+    }
+
+    function switchToChecklist() {
+      switchTab('checklist');
+    }
+
+    // Функции для подгрупп
+    function addSubgroup(groupId) {
+      const subgroupId = Date.now().toString();
+      const group = groups.find(g => g.id === groupId);
+
+      if (group) {
+        group.subgroups.push({
+          id: subgroupId,
+          name: '',
+          processes: []
+        });
+
+        renderSubgroups(groupId);
+      }
+    }
+
+    function updateSubgroup(groupId, subgroupId, field, value) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          subgroup[field] = value;
+        }
+      }
+    }
+
+    function removeSubgroup(groupId, subgroupId) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        group.subgroups = group.subgroups.filter(sg => sg.id !== subgroupId);
+        renderSubgroups(groupId);
+      }
+    }
+
+    // Функции для процессов
+    function addProcess(groupId, subgroupId) {
+      const processId = Date.now().toString();
+      const group = groups.find(g => g.id === groupId);
+
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          subgroup.processes.push({
+            id: processId,
+            name: '',
+            criteria: '',
+            incidents: []
+          });
+
+          renderSubgroups(groupId);
+        }
+      }
+    }
+
+    function updateProcess(groupId, subgroupId, processId, field, value) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          const process = subgroup.processes.find(p => p.id === processId);
+          if (process) {
+            process[field] = value;
+          }
+        }
+      }
+    }
+
+    function removeProcess(groupId, subgroupId, processId) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          subgroup.processes = subgroup.processes.filter(p => p.id !== processId);
+          renderSubgroups(groupId);
+        }
+      }
+    }
+
+    function addIncident(groupId, subgroupId, processId) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          const process = subgroup.processes.find(p => p.id === processId);
+          if (process) {
+            if (!process.incidents) {
+              process.incidents = [];
+            }
+
+            process.incidents.push({
+              id: Date.now().toString(),
+              description: '',
+              solution: ''
+            });
+
+            renderSubgroups(groupId);
+          }
+        }
+      }
+    }
+
+    function updateIncident(groupId, subgroupId, processId, incidentId, field, value) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          const process = subgroup.processes.find(p => p.id === processId);
+          if (process) {
+            const incident = process.incidents.find(i => i.id === incidentId);
+            if (incident) {
+              incident[field] = value;
+            }
+          }
+        }
+      }
+    }
+
+    function removeIncident(groupId, subgroupId, processId, incidentId) {
+      const group = groups.find(g => g.id === groupId);
+      if (group) {
+        const subgroup = group.subgroups.find(sg => sg.id === subgroupId);
+        if (subgroup) {
+          const process = subgroup.processes.find(p => p.id === processId);
+          if (process) {
+            process.incidents = process.incidents.filter(i => i.id !== incidentId);
+            renderSubgroups(groupId);
+          }
+        }
+      }
+    }
+
+    function renderSubgroups(groupId) {
+      const container = document.getElementById(`group-${groupId}-subgroups`);
+      const group = groups.find(g => g.id === groupId);
+
+      if (!container || !group) return;
+
+      container.innerHTML = '';
+
+      group.subgroups.forEach((subgroup, subgroupIndex) => {
+        const subgroupElement = document.createElement('div');
+        subgroupElement.className = 'subgroup-item';
+        subgroupElement.id = `subgroup-${subgroup.id}`;
+
+        subgroupElement.innerHTML = `
+          <div class="flex justify-between items-center mb-4">
+            <div class="w-full">
+              <div class="form-group">
+                <label for="subgroup-name-${subgroup.id}">
+                  <span class="numbering">${groupId}.${subgroupIndex + 1}</span>Название подгруппы
+                </label>
+                <input
+                  type="text"
+                  id="subgroup-name-${subgroup.id}"
+                  class="input"
+                  placeholder="Введите название подгруппы"
+                  value="${subgroup.name || ''}"
+                  onchange="updateSubgroup('${groupId}', '${subgroup.id}', 'name', this.value)"
+                >
+              </div>
+            </div>
+            <button class="btn btn-outline btn-icon ml-2" onclick="removeSubgroup('${groupId}', '${subgroup.id}')">
+              🗑️
+            </button>
+          </div>
+
+          <!-- Процессы подгруппы -->
+          <div id="processes-${subgroup.id}" class="processes-container">
+            ${renderProcesses(groupId, subgroup, subgroupIndex)}
+          </div>
+          <button class="btn btn-outline btn-sm mt-2" onclick="addProcess('${groupId}', '${subgroup.id}')">
+            <span class="mr-2">+</span> Добавить процесс
+          </button>
+        `;
+
+        container.appendChild(subgroupElement);
+      });
+    }
+
+    function renderProcesses(groupId, subgroup, subgroupIndex) {
+      if (!subgroup.processes || !subgroup.processes.length) return '';
+
+      return subgroup.processes.map((process, processIndex) => `
+        <div class="process-item" id="process-${process.id}">
+          <div class="flex justify-between items-center mb-4">
+            <div class="w-full">
+              <div class="form-group">
+                <label for="process-name-${process.id}">
+                  <span class="numbering">${groupId}.${subgroupIndex + 1}.${processIndex + 1}</span>Название процесса
+                </label>
+                <input
+                  type="text"
+                  id="process-name-${process.id}"
+                  class="input"
+                  placeholder="Введите название процесса"
+                  value="${process.name || ''}"
+                  onchange="updateProcess('${groupId}', '${subgroup.id}', '${process.id}', 'name', this.value)"
+                >
+              </div>
+            </div>
+            <button class="btn btn-outline btn-icon ml-2" onclick="removeProcess('${groupId}', '${subgroup.id}', '${process.id}')">
+              🗑️
+            </button>
+          </div>
+
+          <div class="form-group mt-4">
+            <label for="process-criteria-${process.id}">Критерии оценки</label>
+            <textarea
+              id="process-criteria-${process.id}"
+              class="textarea"
+              placeholder="Введите критерии оценки через точку с запятой (;)"
+              onchange="updateProcess('${groupId}', '${subgroup.id}', '${process.id}', 'criteria', this.value)"
+            >${process.criteria || ''}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Обработка штатных инцидентов</label>
+            <div id="incidents-${process.id}" class="mt-2">
+              ${renderIncidents(groupId, subgroup.id, process)}
+            </div>
+            <button class="btn btn-outline btn-sm mt-2" onclick="addIncident('${groupId}', '${subgroup.id}', '${process.id}')">
+              <span class="mr-2">+</span> Добавить инцидент
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderIncidents(groupId, subgroupId, process) {
+      if (!process.incidents || !process.incidents.length) return '';
+
+      return process.incidents.map(incident => `
+        <div class="incident-item" id="incident-${incident.id}">
+          <div class="incident-grid">
+            <div>
+              <label for="incident-desc-${incident.id}" class="text-sm">Описание инцидента</label>
+              <textarea
+                id="incident-desc-${incident.id}"
+                class="textarea"
+                placeholder="Описание"
+                onchange="updateIncident('${groupId}', '${subgroupId}', '${process.id}', '${incident.id}', 'description', this.value)"
+              >${incident.description || ''}</textarea>
+            </div>
+            <div>
+              <div class="flex justify-between items-center">
+                <label for="incident-sol-${incident.id}" class="text-sm">Решение</label>
+                <button class="btn btn-outline btn-icon" onclick="removeIncident('${groupId}', '${subgroupId}', '${process.id}', '${incident.id}')">
+                  🗑️
+                </button>
+              </div>
+              <textarea
+                id="incident-sol-${incident.id}"
+                class="textarea"
+                placeholder="Решение"
+                onchange="updateIncident('${groupId}', '${subgroupId}', '${process.id}', '${incident.id}', 'solution', this.value)"
+              >${incident.solution || ''}</textarea>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Функции для матрицы компетенций
+    function addCompetency() {
+      const input = document.getElementById('new-competency');
+      const value = input.value.trim();
+
+      if (value) {
+        competencies.push(value);
+        input.value = '';
+        renderCompetencies();
+        generateMatrix();
+      }
+    }
+
+    function removeCompetency(index) {
+      competencies.splice(index, 1);
+      renderCompetencies();
+      generateMatrix();
+    }
+
+    function renderCompetencies() {
+      const container = document.getElementById('competencies-container');
+
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (competencies.length === 0) return;
+
+      competencies.forEach((comp, index) => {
+        const tag = document.createElement('span');
+        tag.className = 'competency-tag';
+        tag.innerHTML = `
+          ${comp}
+          <button onclick="removeCompetency(${index})">×</button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    function generateMatrix() {
+      const container = document.getElementById('matrix-container');
+
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (competencies.length === 0) {
+        container.innerHTML = `
+          <div class="card">
+            <div class="text-center text-gray-500 p-4">
+              Добавьте хотя бы одну компетенцию для создания матрицы
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      groups.forEach(group => {
+        if (group.subgroups.length === 0) return;
+
+        const groupCard = document.createElement('div');
+        groupCard.className = 'card';
+
+        groupCard.innerHTML = `
+          <h3>${group.name}</h3>
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Процесс / Критерий</th>
+                ${competencies.map(comp => `<th>${comp}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${generateMatrixRows(group)}
+            </tbody>
+          </table>
+        `;
+
+        container.appendChild(groupCard);
+      });
+    }
+
+    function generateMatrixRows(group) {
+    initializeDefaultRatings();
+      let rows = '';
+
+      group.subgroups.forEach((subgroup, subgroupIndex) => {
+        // Заголовок подгруппы
+        rows += `
+          <tr class="header-row">
+            <td colspan="${competencies.length + 1}" class="font-medium">${subgroup.name || 'Подгруппа без названия'}</td>
+          </tr>
+        `;
+
+        subgroup.processes.forEach((process, processIndex) => {
+          // Заголовок процесса
+
+          rows += `
+            <tr>
+              <td class="pl-4 font-medium">${process.name || 'Процесс без названия'}</td>
+<!--              ${competencies.map((_, compIndex) => `-->
+<!--                <td>-->
+<!--                  <input-->
+<!--                    type="number"-->
+<!--                    min="0"-->
+<!--                    max="10"-->
+<!--                    value="${getRating(group.id, subgroup.id, `${process.id}`, compIndex)}"-->
+<!--                    onchange="updateRating('${group.id}', '${subgroup.id}', '${process.id}', ${compIndex}, this.value)"-->
+<!--                  >-->
+<!--                </td>-->
+<!--              `).join('')}-->
+            </tr>
+          `;
+
+          // Строки для критериев
+          const criteria = process.criteria ? process.criteria.split(';').filter(c => c.trim()) : [];
+          criteria.forEach((criterion, critIdx) => {
+            rows += `
+              <tr>
+                <td class="pl-8 text-sm">${criterion.trim()}</td>
+                ${competencies.map((_, compIndex) => `
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value="${getRating(group.id, subgroup.id, `${process.id}-crit-${critIdx}`, compIndex)}"
+                      onchange="updateRating('${group.id}', '${subgroup.id}', '${process.id}-crit-${critIdx}', ${compIndex}, this.value)"
+                    >
+                  </td>
+                `).join('')}
+              </tr>
+            `;
+          });
+
+          // Строки для инцидентов
+          if (process.incidents && process.incidents.length > 0) {
+            rows += `
+              <tr>
+                <td colspan="${competencies.length + 1}" class="pl-8 text-sm font-medium text-blue-700">
+                  Обработка штатных инцидентов:
+                </td>
+              </tr>
+            `;
+
+            process.incidents.forEach((incident, incIdx) => {
+              rows += `
+                <tr>
+                  <td class="pl-10 text-sm">
+                    <div class="font-medium">${incident.description || 'Без описания'}</div>
+                    <div class="mt-2 text-xs text-gray-500">Решение: ${incident.solution || 'Не указано'}</div>
+                  </td>
+                  ${competencies.map((_, compIndex) => `
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        value="${getRating(group.id, subgroup.id, `${process.id}-inc-${incIdx}`, compIndex)}"
+                        onchange="updateRating('${group.id}', '${subgroup.id}', '${process.id}-inc-${incIdx}', ${compIndex}, this.value)"
+                      >
+                    </td>
+                  `).join('')}
+                </tr>
+              `;
+            });
+          }
+        });
+      });
+
+      return rows;
+    }
+
+    function updateRating(groupId, subgroupId, itemId, competencyIndex, value) {
+      const numValue = Math.min(10, Math.max(0, parseInt(value) || 0));
+
+      if (!ratings[groupId]) {
+        ratings[groupId] = {};
+      }
+
+      if (!ratings[groupId][subgroupId]) {
+        ratings[groupId][subgroupId] = {};
+      }
+
+      if (!ratings[groupId][subgroupId][itemId]) {
+        ratings[groupId][subgroupId][itemId] = {};
+      }
+
+      ratings[groupId][subgroupId][itemId][competencyIndex] = numValue;
+    }
+
+    function getRating(groupId, subgroupId, itemId, competencyIndex) {
+      if (!ratings[groupId] || !ratings[groupId][subgroupId] || !ratings[groupId][subgroupId][itemId] || ratings[groupId][subgroupId][itemId][competencyIndex] === undefined) {
+        return 0;
+      }
+
+      return ratings[groupId][subgroupId][itemId][competencyIndex];
+    }
+
+    //Сохранение всех данных
+    function saveAll() {
+    const jobTitleId = document.getElementById('job-title-id').value;
+    const companyId = document.getElementById('company-id').value;
+
+    const fullData = {
+        jobTitleId,
+        companyId,
+        timestamp: new Date().toISOString(),
+        checklist: groups,
+        matrix: {
+            groups,
+            competencies,
+            ratings
+        }
+    };
+
+    fetch('/save_all/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(fullData)
+    }).then(response => response.json())
+      .then(data => {
+          if (data.status === 'ok') {
+              alert('Данные успешно сохранены!');
+              localStorage.removeItem('checklist');
+              localStorage.removeItem('competencyMatrix');
+              location.reload();  // или window.location.href = '/успех/';
+          } else {
+              alert('Ошибка: ' + data.message);
+          }
+      });
+}
+
+function initializeDefaultRatings() {
+  groups.forEach(group => {
+    group.subgroups.forEach(subgroup => {
+      subgroup.processes.forEach(process => {
+        // Для критериев
+        const criteria = process.criteria ? process.criteria.split(';').filter(c => c.trim()) : [];
+        criteria.forEach((_, critIdx) => {
+          competencies.forEach((_, compIndex) => {
+            updateRating(group.id, subgroup.id, `${process.id}-crit-${critIdx}`, compIndex, 0);
+          });
+        });
+
+        // Для инцидентов
+        if (process.incidents) {
+          process.incidents.forEach((_, incIdx) => {
+            competencies.forEach((_, compIndex) => {
+              updateRating(group.id, subgroup.id, `${process.id}-inc-${incIdx}`, compIndex, 0);
+            });
+          });
+        }
+      });
+    });
+  });
+}
+
+    // Инициализация
+    function init() {
+      // Рендерим пустые контейнеры для подгрупп
+      groups.forEach(group => {
+        renderSubgroups(group.id);
+      });
+
+      // Проверяем, есть ли сохраненные данные
+      const savedChecklist = localStorage.getItem('checklist');
+      if (savedChecklist) {
+        try {
+          const data = JSON.parse(savedChecklist);
+          jobTitle = data.jobTitle || '';
+          groups = data.groups || groups;
+
+          // Обновляем UI
+          document.getElementById('job-title').value = jobTitle;
+          groups.forEach(group => {
+            renderSubgroups(group.id);
+          });
+        } catch (e) {
+          console.error('Ошибка при загрузке сохраненных данных:', e);
+        }
+      }
+
+      const savedMatrix = localStorage.getItem('competencyMatrix');
+      if (savedMatrix) {
+        try {
+          const data = JSON.parse(savedMatrix);
+          competencies = data.competencies || [];
+          ratings = data.ratings || {};
+
+          renderCompetencies();
+        } catch (e) {
+          console.error('Ошибка при загрузке сохраненной матрицы:', e);
+        }
+      }
+
+    }
+
+    // Запускаем инициализацию при загрузке страницы
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+{% endblock %}
