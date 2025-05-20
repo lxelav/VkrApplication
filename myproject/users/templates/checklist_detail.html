@@ -6,6 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Страница чек-листа</title>
     <style>
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.competency-btn {
+    font-size: 14px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.competency-btn:hover {
+    background-color: #2563eb;
+}
+
+@media (max-width: 480px) {
+    .section-title {
+        flex-wrap: wrap;
+    }
+}
+
         :root {
             --primary-color: #3b82f6;
             --primary-light: #93c5fd;
@@ -276,7 +303,7 @@
     <div class="container">
         <!-- Шапка чек-листа -->
         <div class="card checklist-header">
-            <h1 class="checklist-title">Чек-лист по должности {{ job_title }}</h1>
+            <h1 class="checklist-title">Название: {{ checklist.title }}</h1>
 
             <div class="action-buttons">
 <!--                <button class="btn btn-edit">✏️ Редактировать</button>-->
@@ -289,7 +316,11 @@
 
 
         <div class="card">
-    <h2 class="section-title">Опросы по чек-листу</h2>
+    <h2 class="section-title">Опросы по чек-листу
+    <a href="{% url 'competency_results' checklist.id %}" class="competency-btn">
+        📊 Общие результаты по компетенциям
+    </a></h2>
+
 
     <div class="survey-group">
         <h3 class="survey-status">

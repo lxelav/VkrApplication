@@ -5,6 +5,8 @@
 {% block content %}
 {% load static %}
 <style>
+
+
     /* Основные стили */
     :root {
       --primary: #3b82f6;
@@ -373,6 +375,142 @@
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
     }
+
+    /* Добавьте эти стили в ваш CSS файл */
+.table-responsive {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-bottom: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.criteria-column {
+  width: 300px;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.competency-column {
+  width: 100px;
+  min-width: 80px;
+}
+
+.criterion-text, .incident-text {
+  max-width: 300px;
+}
+
+.criterion-content, .incident-description, .incident-solution {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.process-name {
+  font-weight: 500;
+}
+
+.matrix-table input[type="number"] {
+  width: 100%;
+  max-width: 60px;
+  text-align: center;
+}
+
+/* Улучшение стилей для мобильных устройств */
+@media (max-width: 768px) {
+  .criteria-column {
+    width: 200px;
+    min-width: 150px;
+  }
+
+  .competency-column {
+    width: 80px;
+    min-width: 60px;
+  }
+}
+
+  /* Обновленные стили для таблицы */
+.table-responsive {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-bottom: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Фиксированная структура таблицы */
+}
+
+/* Стили для ячеек таблицы */
+.matrix-table th,
+.matrix-table td {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  word-wrap: break-word; /* Важно для переноса длинных слов */
+  overflow: hidden; /* Скрываем переполнение */
+}
+
+/* Стили для колонок */
+.criteria-column {
+  width: 300px;
+  min-width: 200px;
+}
+
+.competency-column {
+  width: 100px;
+  min-width: 80px;
+}
+
+/* Стили для текста критериев и инцидентов */
+.criterion-text,
+.incident-text {
+  max-width: 300px;
+  position: relative; /* Для правильного позиционирования содержимого */
+}
+
+.criterion-content,
+.incident-description,
+.incident-solution {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Ограничиваем двумя строками */
+  -webkit-box-orient: vertical;
+  max-width: 100%; /* Важно! */
+  word-break: break-word; /* Разрешаем перенос длинных слов */
+}
+
+/* Стили для полей ввода */
+.matrix-table input[type="number"] {
+  width: 100%;
+  max-width: 60px;
+  text-align: center;
+  box-sizing: border-box; /* Важно для правильного расчета ширины */
+}
+
+/* Улучшение стилей для мобильных устройств */
+@media (max-width: 768px) {
+  .criteria-column {
+    width: 200px;
+    min-width: 150px;
+  }
+
+  .competency-column {
+    width: 80px;
+    min-width: 60px;
+  }
+}
 </style>
 
 <body>
@@ -385,10 +523,10 @@
     <div class="tab-content active" id="checklist-tab">
       <div class="card">
         <h2>Создание чек-листа по должности {{ job_title_name }}</h2>
-<!--        <div class="form-group">-->
-<!--          <label for="job-title">Название должности</label>-->
-<!--          <input type="text" id="job-title" class="input" placeholder="Введите название должности">-->
-<!--        </div>-->
+        <div class="form-group">
+          <label for="checklist-title">Название чек-листа</label>
+          <input type="text" id="checklist-title" class="input" placeholder="Введите название чек-листа">
+        </div>
       </div>
 
       <div class="scroll-area">
@@ -843,17 +981,19 @@
 
         groupCard.innerHTML = `
           <h3>${group.name}</h3>
+          <div class="table-responsive">
           <table class="matrix-table">
             <thead>
               <tr>
-                <th>Процесс / Критерий</th>
-                ${competencies.map(comp => `<th>${comp}</th>`).join('')}
+                <th class="criteria-column">Процесс / Критерий</th>
+                ${competencies.map(comp => `<th class="competency-column">${comp}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
               ${generateMatrixRows(group)}
             </tbody>
           </table>
+        </div>
         `;
 
         container.appendChild(groupCard);
@@ -877,19 +1017,9 @@
 
           rows += `
             <tr>
-              <td class="pl-4 font-medium">${process.name || 'Процесс без названия'}</td>
-<!--              ${competencies.map((_, compIndex) => `-->
-<!--                <td>-->
-<!--                  <input-->
-<!--                    type="number"-->
-<!--                    min="0"-->
-<!--                    max="10"-->
-<!--                    value="${getRating(group.id, subgroup.id, `${process.id}`, compIndex)}"-->
-<!--                    onchange="updateRating('${group.id}', '${subgroup.id}', '${process.id}', ${compIndex}, this.value)"-->
-<!--                  >-->
-<!--                </td>-->
-<!--              `).join('')}-->
-            </tr>
+                      <td class="pl-4 font-medium process-name">${process.name || 'Процесс без названия'}</td>
+                      ${competencies.map((_, compIndex) => `<td></td>`).join('')}
+                    </tr>
           `;
 
           // Строки для критериев
@@ -897,7 +1027,7 @@
           criteria.forEach((criterion, critIdx) => {
             rows += `
               <tr>
-                <td class="pl-8 text-sm">${criterion.trim()}</td>
+                <td class="pl-8 text-sm criterion-text">${criterion.trim()}</td>
                 ${competencies.map((_, compIndex) => `
                   <td>
                     <input
@@ -981,10 +1111,12 @@
     function saveAll() {
     const jobTitleId = document.getElementById('job-title-id').value;
     const companyId = document.getElementById('company-id').value;
+    const checklistTitle = document.getElementById('checklist-title').value;
 
     const fullData = {
         jobTitleId,
         companyId,
+        checklistTitle,
         timestamp: new Date().toISOString(),
         checklist: groups,
         matrix: {

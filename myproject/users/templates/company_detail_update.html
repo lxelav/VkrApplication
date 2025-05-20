@@ -535,7 +535,7 @@ document.getElementById('assessmentSettingsForm').addEventListener('submit', fun
                                 {% if job_checklists|get_item:job_title.id %}
                                         {% for checklist in job_checklists|get_item:job_title.id %}
                                             <div class="checklist-item">
-                                                <span class="checklist-name">Чек-лист по {{ checklist.job_title.name }}</span>
+                                                <span class="checklist-name">{{ checklist.title }}</span>
                                                 <a href="{% url 'checklist_detail' checklist.id %}" class="btn-view">Посмотреть</a>
                                             </div>
                                         {% endfor %}

@@ -1,5 +1,4 @@
 import json
-import traceback
 
 from django.db.models import Prefetch
 from django.urls import reverse
@@ -16,9 +15,7 @@ from .forms import CustomUserCreationForm, CustomUserChangeForm, CompanyForm
 from django.contrib import messages
 from .models import Company, JobTitle, Checklist, CompetencyMatrix, Competency, Process, Criterion, Rating, Incident, \
     IncidentRating, ProcessGroup, ZAssessment, CriteriaAssessment, CheckMethod, ProcessSubGroup, ChecklistFilling, \
-    ProcessAssessment, CriterionAssessmentEntry, IncidentAssessmentEntry
-from itertools import groupby
-from operator import itemgetter
+    ProcessAssessment, CriterionAssessmentEntry, IncidentAssessmentEntry, CompetencyChecklistFilling, ResultsChecklistFilling
 
 # Определяем меню для каждой роли
 ROLE_MENU = {
@@ -46,7 +43,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('dashboard')  # Перенаправляем в личный кабинет
+            return redirect('dashboard')  # Перенаправляем на начальную страницу
         return HttpResponse("Ошибка авторизации", status=401)
     return render(request, 'login.html')
 
@@ -79,10 +76,10 @@ def dashboard(request):
 
 @login_required
 def users_list(request):
-    if request.user.role != 'admin':  # Проверяем, что доступ только у администратора
-        return render(request, '403.html')  # Отдельный шаблон для ошибки доступа
+    if request.user.role != 'admin':
+        return render(request, '403.html')
 
-    users = User.objects.all()  # Получаем всех пользователей из базы
+    users = User.objects.all()
 
     user_role = request.user.role
     menu_items = ROLE_MENU.get(user_role, [])
@@ -154,14 +151,11 @@ def company_list(request):
     })
 
 def company_detail(request, company_id):
-    # Получаем объект компании по ID
     company = get_object_or_404(Company, id=company_id)
 
-    # Получаем пользователей компании
     users = company.users.all()
 
-    # Группируем пользователей по роли
-    roles = set(user.role for user in users)  # Уникальные роли
+    roles = set(user.role for user in users)
     users_by_role = {role: [] for role in roles}
 
     for user in users:
@@ -326,6 +320,7 @@ def save_all(request):
 
             # 1. Сохраняем чек-лист
             checklist = Checklist.objects.create(
+                title=data.get('checklistTitle'),
                 company=company,
                 job_title=job_title,
                 data=checklist_data,
@@ -428,64 +423,6 @@ def save_all(request):
 
             return JsonResponse({"status": "ok"})
 
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-    return JsonResponse({"status": "method not allowed"}, status=405)
-
-@csrf_exempt  # Отключаем CSRF проверку для этого обработчика, можно использовать CSRF-токен для защиты
-def save_checklist(request):
-    if request.method == "POST":
-        try:
-
-            print('ya tyt')
-            data = json.loads(request.body)
-            job_title_id = data.get("jobTitleId")
-            company_id = data.get("companyId")
-
-            print(f"tyt: {data}, {job_title_id}, {company_id}, {data.get('timestamp')}")
-
-            # Сохранение данных в БД (модель чек-листа)
-            # Пример: Checklist.objects.create(job_title=job_title, groups=groups, timestamp=timestamp)
-
-            try:
-                company = Company.objects.get(id=company_id)
-                job_title = JobTitle.objects.get(id=job_title_id)
-
-                Checklist.objects.create(
-                    company=company,
-                    job_title=job_title,
-                    data=data,
-                    timestamp=data.get('timestamp')
-                )
-            except Exception as e:
-                traceback.print_exc()  # Покажет стек вызовов в консоли
-                return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-
-            print(f'Все ок надо теперь бд сделать и модель {data}')
-
-            return JsonResponse({"status": "ok"})
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-    return JsonResponse({"status": "method not allowed"}, status=405)
-
-@csrf_exempt
-def save_matrix(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            groups = data.get("groups")
-            competencies = data.get("competencies")
-            ratings = data.get("ratings")
-            timestamp = data.get("timestamp")
-
-            # Сохранение данных в БД (модель матрицы компетенций)
-            # Пример: CompetencyMatrix.objects.create(job_title=job_title, competencies=competencies, timestamp=timestamp)
-            print(f'Все ок надо теперь бд сделать и модель матрица, , {data}')
-
-            return JsonResponse({"status": "ok"})
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
@@ -728,6 +665,14 @@ def submit_evaluation(request):
             except Exception as e:
                 print(e)
 
+
+            try:
+                # функция для подсчета и сохорания результатов в бд по filling(-y)
+                if status == 'completed':
+                    calculate_checklist_results(filling, checklist)
+            except Exception as e:
+                print(e)
+
             redirect_url = reverse('checklist_detail', args=[checklist.id])  # Название своего view/url
 
             return JsonResponse({'message': 'Оценка успешно сохранена', 'redirect_url': redirect_url}, status=200)
@@ -737,26 +682,9 @@ def submit_evaluation(request):
 
     return JsonResponse({'error': 'Метод не поддерживается'}, status=405)
 
-def checklist_results(request, filling_id, checklist_id):
-    user_role = request.user.role
-    menu_items = []
-
-    checklist = get_object_or_404(Checklist, id=checklist_id)
-    if user_role == 'methodist':
-        if checklist.company_id:
-            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
-    elif user_role == 'expert':
-        if checklist.company_id:
-            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
-    else:
-        menu_items = ROLE_MENU.get(user_role, [])
-
-    #Тут оценка компетенций
-    checklist = get_object_or_404(Checklist, id=checklist_id)
+def calculate_checklist_results(filling, checklist):
+    # Тут оценка компетенций
     matrix = get_object_or_404(CompetencyMatrix, checklist_id=checklist)
-    fillings = ChecklistFilling.objects.filter(checklist=checklist, status='completed', id=filling_id).first()
-    if not fillings:
-        return JsonResponse({"error": "Нет завершённой оценки"}, status=400)
 
     comp_list = Competency.objects.filter(matrix_id=matrix)
     dict_comp = {}
@@ -768,7 +696,6 @@ def checklist_results(request, filling_id, checklist_id):
         dict_comp_sum[competency.name] = []
         dict_comp_polnota[competency.name] = 0
         dict_comp_tochnost[competency.name] = []
-        print(competency.id, competency.name)  # Пример работы с каждым объектом
 
     data_process = []
     all_process_score = {'temp111': 0,
@@ -805,49 +732,49 @@ def checklist_results(request, filling_id, checklist_id):
         )
 
         for i, group in enumerate(proc_groups):
-            data_process.append({'id': i+1,
-                                 'name':group.name,
+            data_process.append({'id': i + 1,
+                                 'name': group.name,
                                  'metrics': {
-                                        #Z metric:
-                                        "total": 0,
-                                        "checked": 0,
-                                        "checkedPercent": "",
-                                        "completed": 0,
-                                        "completedPercent": "",
+                                     # Z metric:
+                                     "total": 0,
+                                     "checked": 0,
+                                     "checkedPercent": "",
+                                     "completed": 0,
+                                     "completedPercent": "",
 
-                                        'temp1': 0,
-                                        'temp2': 0,
-                                        'temp3': 0,
-                                        'temp4': 0,
-                                        'temp5': 0,
-                                        'temp_all': 0,
-                                         'temp1_accuracy': 0,
-                                         'temp2_accuracy': 0,
-                                         'temp3_accuracy': 0,
-                                         'temp4_accuracy': 0,
-                                         'temp5_accuracy': 0,
-                                        'temp_all_accuracy': 0,
-                                        # CriteriaQuality
-                                        "qualityScore": "83.0",
-                                        "qualityCompleteness": "93.0",
-                                        "qualityAccuracy": "96.0",
+                                     'temp1': 0,
+                                     'temp2': 0,
+                                     'temp3': 0,
+                                     'temp4': 0,
+                                     'temp5': 0,
+                                     'temp_all': 0,
+                                     'temp1_accuracy': 0,
+                                     'temp2_accuracy': 0,
+                                     'temp3_accuracy': 0,
+                                     'temp4_accuracy': 0,
+                                     'temp5_accuracy': 0,
+                                     'temp_all_accuracy': 0,
+                                     # CriteriaQuality
+                                     "qualityScore": "0",
+                                     "qualityCompleteness": "0",
+                                     "qualityAccuracy": "0",
 
-                                         'temp11': 0,
-                                         'temp22': 0,
-                                         'temp33': 0,
-                                         'temp44': 0,
-                                         'temp55': 0,
-                                         'temp_all_all': 0,
-                                         'temp11_accuracy': 0,
-                                         'temp22_accuracy': 0,
-                                         'temp33_accuracy': 0,
-                                         'temp44_accuracy': 0,
-                                         'temp55_accuracy': 0,
-                                         'temp_all_all_accuracy': 0,
-                                        # Incident
-                                        "incidentScore": "62.0",
-                                        "incidentCompleteness": "92.0",
-                                        "incidentAccuracy": "67.0",
+                                     'temp11': 0,
+                                     'temp22': 0,
+                                     'temp33': 0,
+                                     'temp44': 0,
+                                     'temp55': 0,
+                                     'temp_all_all': 0,
+                                     'temp11_accuracy': 0,
+                                     'temp22_accuracy': 0,
+                                     'temp33_accuracy': 0,
+                                     'temp44_accuracy': 0,
+                                     'temp55_accuracy': 0,
+                                     'temp_all_all_accuracy': 0,
+                                     # Incident
+                                     "incidentScore": "0",
+                                     "incidentCompleteness": "0",
+                                     "incidentAccuracy": "0",
 
                                      'temp111': 0,
                                      'temp222': 0,
@@ -861,29 +788,29 @@ def checklist_results(request, filling_id, checklist_id):
                                      'temp444_accuracy': 0,
                                      'temp555_accuracy': 0,
                                      'temp_all_all_all_accuracy': 0,
-                                        # Total
-                                        "totalPoints": "4.25",
-                                        "totalScore": "93.0",
-                                        "totalCompleteness": "84.0",
-                                        "totalAccuracy": "55.0"
-                                    },
+                                     # Total
+                                     "totalPoints": "0",
+                                     "totalScore": "0",
+                                     "totalCompleteness": "0",
+                                     "totalAccuracy": "0"
+                                 },
                                  'processes': []
                                  })
 
             for j, subGroup in enumerate(group.subgroups.all()):
                 processes = subGroup.processes.all()
                 process_count = processes.count()
-                #Добавляем подгруппу для группы по index: i:
+                # Добавляем подгруппу для группы по index: i:
                 data_process[i]['processes'].append(
-                    {'id': j+1,
-                     'name':subGroup.name,
+                    {'id': j + 1,
+                     'name': subGroup.name,
                      'metrics': {
-                         #Z-metric
-                        "total": process_count,
-                        "checked": 0,
-                        "checkedPercent": "",
-                        "completed": 0,
-                        "completedPercent": "",
+                         # Z-metric
+                         "total": process_count,
+                         "checked": 0,
+                         "checkedPercent": "",
+                         "completed": 0,
+                         "completedPercent": "",
 
                          'temp1': 0,
                          'temp2': 0,
@@ -898,9 +825,9 @@ def checklist_results(request, filling_id, checklist_id):
                          'temp5_accuracy': 0,
                          'temp_all_accuracy': 0,
                          # CriteriaQuality
-                         "qualityScore": "83.0",
-                         "qualityCompleteness": "93.0",
-                         "qualityAccuracy": "96.0",
+                         "qualityScore": "0",
+                         "qualityCompleteness": "0",
+                         "qualityAccuracy": "0",
 
                          'temp11': 0,
                          'temp22': 0,
@@ -915,9 +842,9 @@ def checklist_results(request, filling_id, checklist_id):
                          'temp55_accuracy': 0,
                          'temp_all_all_accuracy': 0,
                          # Incident
-                         "incidentScore": "62.0",
-                         "incidentCompleteness": "92.0",
-                         "incidentAccuracy": "67.0",
+                         "incidentScore": "0",
+                         "incidentCompleteness": "0",
+                         "incidentAccuracy": "0",
 
                          # Total
                          'temp111': 0,
@@ -932,19 +859,19 @@ def checklist_results(request, filling_id, checklist_id):
                          'temp444_accuracy': 0,
                          'temp555_accuracy': 0,
                          'temp_all_all_all_accuracy': 0,
-                         "totalPoints": "4.25",
-                         "totalScore": "93.0",
-                         "totalCompleteness": "84.0",
-                         "totalAccuracy": "55.0"
-                        },
+                         "totalPoints": "0",
+                         "totalScore": "0",
+                         "totalCompleteness": "0",
+                         "totalAccuracy": "0"
+                     },
                      'criteria': [],
                      })
 
                 data_process[i]['metrics']['total'] += process_count
 
                 for k, process in enumerate(processes):
-                    #Считаю говно для оценки процессов(достаю Оценку процесса из бд и смотрю че там написано)
-                    temp_obj = get_object_or_404(ProcessAssessment, process_id=process, filling_id=fillings)
+                    # Считаю для оценки процессов(достаю Оценку процесса из бд и смотрю че там написано)
+                    temp_obj = get_object_or_404(ProcessAssessment, process_id=process, filling_id=filling)
                     z_assessment = get_object_or_404(ZAssessment, id=temp_obj.z_assessment_id)
 
                     if z_assessment.label != 'Не проверен':
@@ -955,7 +882,7 @@ def checklist_results(request, filling_id, checklist_id):
                         data_process[i]['processes'][j]['metrics']['completed'] += 1
                         data_process[i]['metrics']['completed'] += 1
 
-                    #Добавляю процесс:
+                    # Добавляю процесс:
                     data_process[i]['processes'][j]['criteria'].append({
                         'id': k + 1,
                         'name': process.name,
@@ -1017,7 +944,7 @@ def checklist_results(request, filling_id, checklist_id):
                     incidents = Incident.objects.filter(process=process)
 
                     for criterion in criterions:
-                        temp = CriterionAssessmentEntry.objects.filter(filling_id=fillings,
+                        temp = CriterionAssessmentEntry.objects.filter(filling_id=filling,
                                                                        criterion_id=criterion).first()
                         expert_rating_criterion = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
                         expert_method_criterion = get_object_or_404(CheckMethod, id=temp.method_id)
@@ -1034,7 +961,8 @@ def checklist_results(request, filling_id, checklist_id):
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] += 1
 
                         if expert_rating_criterion.label != 'Не проверен':
-                            data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] += expert_rating_criterion.value
+                            data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                                'temp_all'] += expert_rating_criterion.value
 
                         if expert_method_criterion.label == 'Наблюдение':
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] += 1
@@ -1047,10 +975,11 @@ def checklist_results(request, filling_id, checklist_id):
                         elif expert_method_criterion.label == 'Не ясен':
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'] += 1
 
-                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] += expert_method_criterion.coefficient
+                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                            'temp_all_accuracy'] += expert_method_criterion.coefficient
 
                     for incident in incidents:
-                        temp = IncidentAssessmentEntry.objects.filter(filling_id=fillings, incident_id=incident).first()
+                        temp = IncidentAssessmentEntry.objects.filter(filling_id=filling, incident_id=incident).first()
                         expert_rating_incident = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
                         expert_method_incident = get_object_or_404(CheckMethod, id=temp.method_id)
 
@@ -1066,7 +995,8 @@ def checklist_results(request, filling_id, checklist_id):
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55'] += 1
 
                         if expert_rating_incident.label != 'Не проверен':
-                            data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all'] += expert_rating_incident.value
+                            data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                                'temp_all_all'] += expert_rating_incident.value
 
                         if expert_method_incident.label == 'Наблюдение':
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy'] += 1
@@ -1079,42 +1009,52 @@ def checklist_results(request, filling_id, checklist_id):
                         elif expert_method_incident.label == 'Не ясен':
                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy'] += 1
 
-                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy'] += expert_method_incident.coefficient
+                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                            'temp_all_all_accuracy'] += expert_method_incident.coefficient
 
-                    #теперь для процесса посчитаю всего:
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
+                    # теперь для процесса посчитаю всего:
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] + \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
 
                     # теперь для процесса посчитаю всего:
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy']
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy']
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy']
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy']
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy']
                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all_accuracy'] = \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] + \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] + \
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy']
 
-                    """""totalPoints": "4.25",
-                         "totalScore": "93.0",
-                         "totalCompleteness": "84.0",
-                         "totalAccuracy": "55.0"""
 
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['totalPoints'] = data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all']
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['totalPoints'] = \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all']
 
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111'] +
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222'] +
@@ -1128,7 +1068,8 @@ def checklist_results(request, filling_id, checklist_id):
 
                     # Полнота
                     if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] != 0:
-                        data_process[i]['processes'][j]['criteria'][k]['metrics']['totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555']), 1) * 100}'
+                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                            'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555']), 1) * 100}'
 
                     # Точность
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111_accuracy'] +
@@ -1142,20 +1083,24 @@ def checklist_results(request, filling_id, checklist_id):
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['totalAccuracy'] = '0'
 
-
-                    #Тут считается критерии качества и инцинденты для процесса
-                    #Оценка
-                    sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'])
+                    # Тут считается критерии качества и инцинденты для процесса
+                    # Оценка
+                    sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] +
+                                data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] +
+                                data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] +
+                                data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'])
                     if sum_temp != 0:
-                        data_process[i]['processes'][j]['criteria'][k]['metrics']['score'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                            'score'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] / sum_temp, 1) * 100}'
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['score'] = '0'
 
-                    #Полнота
+                    # Полнота
                     if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] != 0:
-                        data_process[i]['processes'][j]['criteria'][k]['metrics']['completeness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']), 1) * 100}'
+                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
+                            'completeness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']), 1) * 100}'
 
-                    #Точность
+                    # Точность
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] +
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] +
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] +
@@ -1195,42 +1140,48 @@ def checklist_results(request, filling_id, checklist_id):
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['incidentAccuracy'] = '0'
 
-                    #Тут данные по критериям качества/inc добвляем в подгруппу
-                    #оценка и полнота
-                    data_process[i]['processes'][j]['metrics']['temp1'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1']
-                    data_process[i]['processes'][j]['metrics']['temp2'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2']
-                    data_process[i]['processes'][j]['metrics']['temp3'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3']
-                    data_process[i]['processes'][j]['metrics']['temp4'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4']
-                    data_process[i]['processes'][j]['metrics']['temp5'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']
-                    data_process[i]['processes'][j]['metrics']['temp_all'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all']
+                    # Тут данные по критериям качества/inc добвляем в подгруппу
+                    # оценка и полнота
+                    data_process[i]['processes'][j]['metrics']['temp1'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1']
+                    data_process[i]['processes'][j]['metrics']['temp2'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2']
+                    data_process[i]['processes'][j]['metrics']['temp3'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3']
+                    data_process[i]['processes'][j]['metrics']['temp4'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4']
+                    data_process[i]['processes'][j]['metrics']['temp5'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']
+                    data_process[i]['processes'][j]['metrics']['temp_all'] += \
+                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all']
 
-                    #Точность
+                    # Точность
                     data_process[i]['processes'][j]['metrics']['temp1_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy']
                     data_process[i]['processes'][j]['metrics']['temp2_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy']
                     data_process[i]['processes'][j]['metrics']['temp3_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy']
                     data_process[i]['processes'][j]['metrics']['temp4_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy']
                     data_process[i]['processes'][j]['metrics']['temp5_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy']
                     data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy']
 
                     # оценка и полнота inc
                     data_process[i]['processes'][j]['metrics']['temp11'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
                     data_process[i]['processes'][j]['metrics']['temp22'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
                     data_process[i]['processes'][j]['metrics']['temp33'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
                     data_process[i]['processes'][j]['metrics']['temp44'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
                     data_process[i]['processes'][j]['metrics']['temp55'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
                     data_process[i]['processes'][j]['metrics']['temp_all_all'] += \
-                    data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
 
                     # Точность inc
                     data_process[i]['processes'][j]['metrics']['temp11_accuracy'] += \
@@ -1246,21 +1197,26 @@ def checklist_results(request, filling_id, checklist_id):
                     data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy'] += \
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy']
 
+                    # оценка компетенций
                     for competency in comp_list:
                         for criterion in criterions:
-                            matrix_rating_criterion = Rating.objects.filter(criterion_id=criterion, competency_id=competency).first()
+                            matrix_rating_criterion = Rating.objects.filter(criterion_id=criterion,
+                                                                            competency_id=competency).first()
 
-                            temp = CriterionAssessmentEntry.objects.filter(filling_id=fillings, criterion_id=criterion).first()
+                            temp = CriterionAssessmentEntry.objects.filter(filling_id=filling,
+                                                                           criterion_id=criterion).first()
                             expert_rating_criterion = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
                             expert_method_criterion = get_object_or_404(CheckMethod, id=temp.method_id)
 
-                            print(competency.name, ': ', matrix_rating_criterion.score * expert_rating_criterion.value, matrix_rating_criterion.score, expert_rating_criterion.value)
+                            print(competency.name, ': ', matrix_rating_criterion.score * expert_rating_criterion.value,
+                                  matrix_rating_criterion.score, expert_rating_criterion.value)
 
                             # оценка
                             dict_comp_sum[competency.name].append(matrix_rating_criterion.score)
-                            dict_comp[competency.name].append(matrix_rating_criterion.score * expert_rating_criterion.value)
+                            dict_comp[competency.name].append(
+                                matrix_rating_criterion.score * expert_rating_criterion.value)
 
-                            #полнота:
+                            # полнота:
                             print(criterion.text, matrix_rating_criterion.score, expert_rating_criterion.label)
                             if matrix_rating_criterion.score != 0 and expert_rating_criterion.label != 'Не проверен':
                                 dict_comp_polnota[competency.name] += 1
@@ -1269,15 +1225,18 @@ def checklist_results(request, filling_id, checklist_id):
                                 dict_comp_tochnost[competency.name].append(1 * expert_method_criterion.coefficient)
 
                         for incident in incidents:
-                            matrix_rating_incident = IncidentRating.objects.filter(incident_id=incident, competency_id=competency).first()
+                            matrix_rating_incident = IncidentRating.objects.filter(incident_id=incident,
+                                                                                   competency_id=competency).first()
 
-                            temp = IncidentAssessmentEntry.objects.filter(filling_id=fillings, incident_id=incident).first()
+                            temp = IncidentAssessmentEntry.objects.filter(filling_id=filling,
+                                                                          incident_id=incident).first()
                             expert_rating_incident = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
                             expert_method_incident = get_object_or_404(CheckMethod, id=temp.method_id)
 
                             # оценка
                             dict_comp_sum[competency.name].append(matrix_rating_incident.score)
-                            dict_comp[competency.name].append(matrix_rating_incident.score * expert_rating_incident.value)
+                            dict_comp[competency.name].append(
+                                matrix_rating_incident.score * expert_rating_incident.value)
 
                             # полнота:
                             print(incident.description, matrix_rating_incident.score, expert_rating_incident.label)
@@ -1287,33 +1246,36 @@ def checklist_results(request, filling_id, checklist_id):
                                 # точность:
                                 dict_comp_tochnost[competency.name].append(1 * expert_method_incident.coefficient)
 
-                #Это для Z-оценки в подгруппе
-                if data_process[i]['processes'][j]['metrics']['total'] != 0 and data_process[i]['processes'][j]['metrics']['checked'] != 0:
-                    data_process[i]['processes'][j]['metrics']['checkedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['checked'] / data_process[i]['processes'][j]['metrics']['total'], 1) * 100}'
-                    data_process[i]['processes'][j]['metrics']['completedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['completed'] / data_process[i]['processes'][j]['metrics']['checked'], 1) * 100}'
+                # Это для Z-оценки в подгруппе
+                if data_process[i]['processes'][j]['metrics']['total'] != 0 and \
+                        data_process[i]['processes'][j]['metrics']['checked'] != 0:
+                    data_process[i]['processes'][j]['metrics'][
+                        'checkedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['checked'] / data_process[i]['processes'][j]['metrics']['total'], 1) * 100}'
+                    data_process[i]['processes'][j]['metrics'][
+                        'completedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['completed'] / data_process[i]['processes'][j]['metrics']['checked'], 1) * 100}'
                 else:
                     data_process[i]['processes'][j]['metrics']['checkedPercent'] = '0'
                     data_process[i]['processes'][j]['metrics']['completedPercent'] = '0'
 
                 # теперь для подгруппы посчитаю всего:
                 data_process[i]['processes'][j]['metrics']['temp111'] = \
-                data_process[i]['processes'][j]['metrics']['temp1'] + \
-                data_process[i]['processes'][j]['metrics']['temp11']
+                    data_process[i]['processes'][j]['metrics']['temp1'] + \
+                    data_process[i]['processes'][j]['metrics']['temp11']
                 data_process[i]['processes'][j]['metrics']['temp222'] = \
-                data_process[i]['processes'][j]['metrics']['temp2'] + \
-                data_process[i]['processes'][j]['metrics']['temp22']
+                    data_process[i]['processes'][j]['metrics']['temp2'] + \
+                    data_process[i]['processes'][j]['metrics']['temp22']
                 data_process[i]['processes'][j]['metrics']['temp333'] = \
-                data_process[i]['processes'][j]['metrics']['temp3'] + \
-                data_process[i]['processes'][j]['metrics']['temp33']
+                    data_process[i]['processes'][j]['metrics']['temp3'] + \
+                    data_process[i]['processes'][j]['metrics']['temp33']
                 data_process[i]['processes'][j]['metrics']['temp444'] = \
-                data_process[i]['processes'][j]['metrics']['temp4'] + \
-                data_process[i]['processes'][j]['metrics']['temp44']
+                    data_process[i]['processes'][j]['metrics']['temp4'] + \
+                    data_process[i]['processes'][j]['metrics']['temp44']
                 data_process[i]['processes'][j]['metrics']['temp555'] = \
-                data_process[i]['processes'][j]['metrics']['temp5'] + \
-                data_process[i]['processes'][j]['metrics']['temp55']
+                    data_process[i]['processes'][j]['metrics']['temp5'] + \
+                    data_process[i]['processes'][j]['metrics']['temp55']
                 data_process[i]['processes'][j]['metrics']['temp_all_all_all'] = \
-                data_process[i]['processes'][j]['metrics']['temp_all'] + \
-                data_process[i]['processes'][j]['metrics']['temp_all_all']
+                    data_process[i]['processes'][j]['metrics']['temp_all'] + \
+                    data_process[i]['processes'][j]['metrics']['temp_all_all']
 
                 # теперь для процесса посчитаю всего:
                 data_process[i]['processes'][j]['metrics']['temp111_accuracy'] = \
@@ -1336,7 +1298,7 @@ def checklist_results(request, filling_id, checklist_id):
                     data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy']
 
                 data_process[i]['processes'][j]['metrics']['totalPoints'] = \
-                data_process[i]['processes'][j]['metrics']['temp_all_all_all']
+                    data_process[i]['processes'][j]['metrics']['temp_all_all_all']
 
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp111'] +
                             data_process[i]['processes'][j]['metrics']['temp222'] +
@@ -1365,7 +1327,7 @@ def checklist_results(request, filling_id, checklist_id):
                 else:
                     data_process[i]['processes'][j]['metrics']['totalAccuracy'] = '0'
 
-                #Это для критериев качества/inc в подгруппе
+                # Это для критериев качества/inc в подгруппе
                 # (оценка)
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp1'] +
                             data_process[i]['processes'][j]['metrics']['temp2'] +
@@ -1377,12 +1339,12 @@ def checklist_results(request, filling_id, checklist_id):
                 else:
                     data_process[i]['processes'][j]['metrics']['qualityScore'] = '0'
 
-                #Полнота
+                # Полнота
                 if sum_temp + data_process[i]['processes'][j]['metrics']['temp5'] != 0:
                     data_process[i]['processes'][j]['metrics'][
                         'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp5']), 1) * 100}'
 
-                #Точность
+                # Точность
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp1_accuracy'] +
                             data_process[i]['processes'][j]['metrics']['temp2_accuracy'] +
                             data_process[i]['processes'][j]['metrics']['temp3_accuracy'] +
@@ -1422,7 +1384,6 @@ def checklist_results(request, filling_id, checklist_id):
                 else:
                     data_process[i]['processes'][j]['metrics']['incidentAccuracy'] = '0'
 
-
                 # Тут данные по критериям качества/inc добвляем в группу
                 data_process[i]['metrics']['temp1'] += data_process[i]['processes'][j]['metrics']['temp1']
                 data_process[i]['metrics']['temp2'] += data_process[i]['processes'][j]['metrics']['temp2']
@@ -1431,12 +1392,18 @@ def checklist_results(request, filling_id, checklist_id):
                 data_process[i]['metrics']['temp5'] += data_process[i]['processes'][j]['metrics']['temp5']
                 data_process[i]['metrics']['temp_all'] += data_process[i]['processes'][j]['metrics']['temp_all']
 
-                data_process[i]['metrics']['temp1_accuracy'] += data_process[i]['processes'][j]['metrics']['temp1_accuracy']
-                data_process[i]['metrics']['temp2_accuracy'] += data_process[i]['processes'][j]['metrics']['temp2_accuracy']
-                data_process[i]['metrics']['temp3_accuracy'] += data_process[i]['processes'][j]['metrics']['temp3_accuracy']
-                data_process[i]['metrics']['temp4_accuracy'] += data_process[i]['processes'][j]['metrics']['temp4_accuracy']
-                data_process[i]['metrics']['temp5_accuracy'] += data_process[i]['processes'][j]['metrics']['temp5_accuracy']
-                data_process[i]['metrics']['temp_all_accuracy'] += data_process[i]['processes'][j]['metrics']['temp_all_accuracy']
+                data_process[i]['metrics']['temp1_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp1_accuracy']
+                data_process[i]['metrics']['temp2_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp2_accuracy']
+                data_process[i]['metrics']['temp3_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp3_accuracy']
+                data_process[i]['metrics']['temp4_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp4_accuracy']
+                data_process[i]['metrics']['temp5_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp5_accuracy']
+                data_process[i]['metrics']['temp_all_accuracy'] += data_process[i]['processes'][j]['metrics'][
+                    'temp_all_accuracy']
 
                 data_process[i]['metrics']['temp11'] += data_process[i]['processes'][j]['metrics']['temp11']
                 data_process[i]['metrics']['temp22'] += data_process[i]['processes'][j]['metrics']['temp22']
@@ -1458,10 +1425,12 @@ def checklist_results(request, filling_id, checklist_id):
                 data_process[i]['metrics']['temp_all_all_accuracy'] += data_process[i]['processes'][j]['metrics'][
                     'temp_all_all_accuracy']
 
-            #Оценка Z в группе
+            # Оценка Z в группе
             if data_process[i]['metrics']['total'] != 0 and data_process[i]['metrics']['checked'] != 0:
-                data_process[i]['metrics']['checkedPercent'] = f'{round(data_process[i]['metrics']['checked']/data_process[i]['metrics']['total'], 1) * 100}'
-                data_process[i]['metrics']['completedPercent'] = f'{round(data_process[i]['metrics']['completed']/data_process[i]['metrics']['checked'], 1) * 100}'
+                data_process[i]['metrics'][
+                    'checkedPercent'] = f'{round(data_process[i]['metrics']['checked'] / data_process[i]['metrics']['total'], 1) * 100}'
+                data_process[i]['metrics'][
+                    'completedPercent'] = f'{round(data_process[i]['metrics']['completed'] / data_process[i]['metrics']['checked'], 1) * 100}'
             else:
                 data_process[i]['metrics']['checkedPercent'] = '0'
                 data_process[i]['metrics']['completedPercent'] = '0'
@@ -1507,20 +1476,18 @@ def checklist_results(request, filling_id, checklist_id):
 
             data_process[i]['metrics']['totalPoints'] = data_process[i]['metrics']['temp_all_all_all']
 
-            all_process_score['totalPoints'] +=  round(data_process[i]['metrics']['totalPoints'], 1)
-            all_process_score['temp111'] +=  data_process[i]['metrics']['temp111']
-            all_process_score['temp222'] +=  data_process[i]['metrics']['temp222']
-            all_process_score['temp333'] +=  data_process[i]['metrics']['temp333']
-            all_process_score['temp444'] +=  data_process[i]['metrics']['temp444']
-            all_process_score['temp555'] +=  data_process[i]['metrics']['temp555']
-            all_process_score['temp555_accuracy'] +=  data_process[i]['metrics']['temp555_accuracy']
-            all_process_score['temp444_accuracy'] +=  data_process[i]['metrics']['temp444_accuracy']
-            all_process_score['temp333_accuracy'] +=  data_process[i]['metrics']['temp333_accuracy']
-            all_process_score['temp222_accuracy'] +=  data_process[i]['metrics']['temp222_accuracy']
-            all_process_score['temp111_accuracy'] +=  data_process[i]['metrics']['temp111_accuracy']
+            all_process_score['totalPoints'] += round(data_process[i]['metrics']['totalPoints'], 1)
+            all_process_score['temp111'] += data_process[i]['metrics']['temp111']
+            all_process_score['temp222'] += data_process[i]['metrics']['temp222']
+            all_process_score['temp333'] += data_process[i]['metrics']['temp333']
+            all_process_score['temp444'] += data_process[i]['metrics']['temp444']
+            all_process_score['temp555'] += data_process[i]['metrics']['temp555']
+            all_process_score['temp555_accuracy'] += data_process[i]['metrics']['temp555_accuracy']
+            all_process_score['temp444_accuracy'] += data_process[i]['metrics']['temp444_accuracy']
+            all_process_score['temp333_accuracy'] += data_process[i]['metrics']['temp333_accuracy']
+            all_process_score['temp222_accuracy'] += data_process[i]['metrics']['temp222_accuracy']
+            all_process_score['temp111_accuracy'] += data_process[i]['metrics']['temp111_accuracy']
             all_process_score['temp_all_all_all_accuracy'] += data_process[i]['metrics']['temp_all_all_all_accuracy']
-
-            print(all_process_score)
 
             sum_temp = (data_process[i]['metrics']['temp111'] +
                         data_process[i]['metrics']['temp222'] +
@@ -1560,12 +1527,12 @@ def checklist_results(request, filling_id, checklist_id):
             else:
                 data_process[i]['metrics']['qualityScore'] = '0'
 
-            #полнота
+            # полнота
             if (sum_temp + data_process[i]['metrics']['temp5']) != 0:
                 data_process[i]['metrics'][
                     'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp5']), 1) * 100}'
 
-            #Точность
+            # Точность
             sum_temp = (data_process[i]['metrics']['temp1_accuracy'] +
                         data_process[i]['metrics']['temp2_accuracy'] +
                         data_process[i]['metrics']['temp3_accuracy'] +
@@ -1577,7 +1544,7 @@ def checklist_results(request, filling_id, checklist_id):
             else:
                 data_process[i]['metrics']['qualityAccuracy'] = '0'
 
-            #score inc
+            # score inc
             sum_temp = (data_process[i]['metrics']['temp11'] +
                         data_process[i]['metrics']['temp22'] +
                         data_process[i]['metrics']['temp33'] +
@@ -1627,7 +1594,8 @@ def checklist_results(request, filling_id, checklist_id):
                     all_process_score['temp444_accuracy'] +
                     all_process_score['temp555_accuracy'])
         if sum_temp != 0:
-            all_process_score['totalAccuracy'] = f'{round(all_process_score['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+            all_process_score[
+                'totalAccuracy'] = f'{round(all_process_score['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
         else:
             all_process_score['totalAccuracy'] = '0'
 
@@ -1643,199 +1611,1145 @@ def checklist_results(request, filling_id, checklist_id):
         competencies_json.append({'id': i + 1, 'name': competency.name})
 
         if sum(dict_comp_sum[competency.name]) != 0:
-            competencies_json[i]['score'] = f'{round((sum(dict_comp[competency.name])/sum(dict_comp_sum[competency.name])) * 100, 1)}%'
-            sum_score += (sum(dict_comp[competency.name])/sum(dict_comp_sum[competency.name])) * 100
+            competencies_json[i][
+                'score'] = f'{round((sum(dict_comp[competency.name]) / sum(dict_comp_sum[competency.name])) * 100, 1)}%'
+            sum_score += (sum(dict_comp[competency.name]) / sum(dict_comp_sum[competency.name])) * 100
         else:
             competencies_json[i]['score'] = '0.0%'
 
         if len(dict_comp_sum[competency.name]) != 0:
-            competencies_json[i]['completeness'] = f'{round((dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])) * 100, 1)}%'
+            competencies_json[i][
+                'completeness'] = f'{round((dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])) * 100, 1)}%'
             compl_sum += (dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])) * 100
         else:
             competencies_json[i]['completeness'] = '0.0%'
 
         if dict_comp_polnota[competency.name] != 0:
-            competencies_json[i]['accuracy'] = f'{round((sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name]) * 100, 1)}%'
+            competencies_json[i][
+                'accuracy'] = f'{round((sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name]) * 100, 1)}%'
             acc_sum += (sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name]) * 100
         else:
             competencies_json[i]['accuracy'] = f'0.0%'
 
-    # print('Полнота: ', dict_comp_sum, dict_comp_polnota)
+    processes_summary = {
+        "averagePoints": round(all_process_score['totalPoints'], 1),
+        "averageScore": all_process_score['totalScore'],
+        "averageCompleteness": all_process_score['totalCompleteness'],
+        "averageAccuracy": all_process_score['totalAccuracy'],
+        "scoreClass": "high",
+        "completenessClass": "medium",
+        "accuracyClass": "medium"
+    }
+
+    CompetencyChecklistFilling.objects.update_or_create(
+        checklist=checklist,
+        filling=filling,
+        defaults={'competency_json': competencies_json}
+    )
+
+    ResultsChecklistFilling.objects.update_or_create(
+        filling=filling,
+        defaults={'competencies_json': competencies_json,
+                  'competencies_summary_json': {
+                      'averageScore': f'{round(sum_score / len(competencies_json), 1)}',
+                      'averageCompleteness': f'{round(compl_sum / len(competencies_json), 1)}',
+                      'averageAccuracy': f'{round(acc_sum / len(competencies_json), 1)}'
+                  },
+                  'processes_data': data_process,
+                  'processes_summary': processes_summary,
+                  }
+    )
+
+def checklist_results(request, filling_id, checklist_id):
+    user_role = request.user.role
+    menu_items = []
+
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+    if user_role == 'methodist':
+        if checklist.company_id:
+            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
+    elif user_role == 'expert':
+        if checklist.company_id:
+            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
+    else:
+        menu_items = ROLE_MENU.get(user_role, [])
+
+    #Тут оценка компетенций
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+    fillings = ChecklistFilling.objects.filter(checklist=checklist, status='completed', id=filling_id).first()
+    if not fillings:
+        return JsonResponse({"error": "Нет завершённой оценки"}, status=400)
+    #
+    # comp_list = Competency.objects.filter(matrix_id=matrix)
+    # dict_comp = {}
+    # dict_comp_sum = {}
+    # dict_comp_polnota = {}
+    # dict_comp_tochnost = {}
     # for competency in comp_list:
+    #     dict_comp[competency.name] = []
+    #     dict_comp_sum[competency.name] = []
+    #     dict_comp_polnota[competency.name] = 0
+    #     dict_comp_tochnost[competency.name] = []
+    #     print(competency.id, competency.name)  # Пример работы с каждым объектом
+    #
+    # data_process = []
+    # all_process_score = {'temp111': 0,
+    #                      'temp222': 0,
+    #                      'temp333': 0,
+    #                      'temp444': 0,
+    #                      'temp555': 0,
+    #                      'temp_all_all_all': 0,
+    #                      'temp111_accuracy': 0,
+    #                      'temp222_accuracy': 0,
+    #                      'temp333_accuracy': 0,
+    #                      'temp444_accuracy': 0,
+    #                      'temp555_accuracy': 0,
+    #                      'temp_all_all_all_accuracy': 0,
+    #                      "totalPoints": 0,
+    #                      "totalScore": 0,
+    #                      "totalCompleteness": 0,
+    #                      "totalAccuracy": 0}
+    # try:
+    #     proc_groups = ProcessGroup.objects.filter(
+    #         matrix=matrix
+    #     ).prefetch_related(
+    #         Prefetch('subgroups',
+    #                  queryset=ProcessSubGroup.objects.prefetch_related(
+    #                      Prefetch('processes',
+    #                               queryset=Process.objects.prefetch_related(
+    #                                   'incidents',
+    #                                   'criteria',
+    #                                   'processassessment_set'
+    #                               )
+    #                               )
+    #                  )
+    #                  )
+    #     )
+    #
+    #     for i, group in enumerate(proc_groups):
+    #         data_process.append({'id': i+1,
+    #                              'name':group.name,
+    #                              'metrics': {
+    #                                     #Z metric:
+    #                                     "total": 0,
+    #                                     "checked": 0,
+    #                                     "checkedPercent": "",
+    #                                     "completed": 0,
+    #                                     "completedPercent": "",
+    #
+    #                                     'temp1': 0,
+    #                                     'temp2': 0,
+    #                                     'temp3': 0,
+    #                                     'temp4': 0,
+    #                                     'temp5': 0,
+    #                                     'temp_all': 0,
+    #                                      'temp1_accuracy': 0,
+    #                                      'temp2_accuracy': 0,
+    #                                      'temp3_accuracy': 0,
+    #                                      'temp4_accuracy': 0,
+    #                                      'temp5_accuracy': 0,
+    #                                     'temp_all_accuracy': 0,
+    #                                     # CriteriaQuality
+    #                                     "qualityScore": "0",
+    #                                     "qualityCompleteness": "0",
+    #                                     "qualityAccuracy": "0",
+    #
+    #                                      'temp11': 0,
+    #                                      'temp22': 0,
+    #                                      'temp33': 0,
+    #                                      'temp44': 0,
+    #                                      'temp55': 0,
+    #                                      'temp_all_all': 0,
+    #                                      'temp11_accuracy': 0,
+    #                                      'temp22_accuracy': 0,
+    #                                      'temp33_accuracy': 0,
+    #                                      'temp44_accuracy': 0,
+    #                                      'temp55_accuracy': 0,
+    #                                      'temp_all_all_accuracy': 0,
+    #                                     # Incident
+    #                                     "incidentScore": "0",
+    #                                     "incidentCompleteness": "0",
+    #                                     "incidentAccuracy": "0",
+    #
+    #                                  'temp111': 0,
+    #                                  'temp222': 0,
+    #                                  'temp333': 0,
+    #                                  'temp444': 0,
+    #                                  'temp555': 0,
+    #                                  'temp_all_all_all': 0,
+    #                                  'temp111_accuracy': 0,
+    #                                  'temp222_accuracy': 0,
+    #                                  'temp333_accuracy': 0,
+    #                                  'temp444_accuracy': 0,
+    #                                  'temp555_accuracy': 0,
+    #                                  'temp_all_all_all_accuracy': 0,
+    #                                     # Total
+    #                                     "totalPoints": "0",
+    #                                     "totalScore": "0",
+    #                                     "totalCompleteness": "0",
+    #                                     "totalAccuracy": "0"
+    #                                 },
+    #                              'processes': []
+    #                              })
+    #
+    #         for j, subGroup in enumerate(group.subgroups.all()):
+    #             processes = subGroup.processes.all()
+    #             process_count = processes.count()
+    #             #Добавляем подгруппу для группы по index: i:
+    #             data_process[i]['processes'].append(
+    #                 {'id': j+1,
+    #                  'name':subGroup.name,
+    #                  'metrics': {
+    #                      #Z-metric
+    #                     "total": process_count,
+    #                     "checked": 0,
+    #                     "checkedPercent": "",
+    #                     "completed": 0,
+    #                     "completedPercent": "",
+    #
+    #                      'temp1': 0,
+    #                      'temp2': 0,
+    #                      'temp3': 0,
+    #                      'temp4': 0,
+    #                      'temp5': 0,
+    #                      'temp_all': 0,
+    #                      'temp1_accuracy': 0,
+    #                      'temp2_accuracy': 0,
+    #                      'temp3_accuracy': 0,
+    #                      'temp4_accuracy': 0,
+    #                      'temp5_accuracy': 0,
+    #                      'temp_all_accuracy': 0,
+    #                      # CriteriaQuality
+    #                      "qualityScore": "0",
+    #                      "qualityCompleteness": "0",
+    #                      "qualityAccuracy": "0",
+    #
+    #                      'temp11': 0,
+    #                      'temp22': 0,
+    #                      'temp33': 0,
+    #                      'temp44': 0,
+    #                      'temp55': 0,
+    #                      'temp_all_all': 0,
+    #                      'temp11_accuracy': 0,
+    #                      'temp22_accuracy': 0,
+    #                      'temp33_accuracy': 0,
+    #                      'temp44_accuracy': 0,
+    #                      'temp55_accuracy': 0,
+    #                      'temp_all_all_accuracy': 0,
+    #                      # Incident
+    #                      "incidentScore": "0",
+    #                      "incidentCompleteness": "0",
+    #                      "incidentAccuracy": "0",
+    #
+    #                      # Total
+    #                      'temp111': 0,
+    #                      'temp222': 0,
+    #                      'temp333': 0,
+    #                      'temp444': 0,
+    #                      'temp555': 0,
+    #                      'temp_all_all_all': 0,
+    #                      'temp111_accuracy': 0,
+    #                      'temp222_accuracy': 0,
+    #                      'temp333_accuracy': 0,
+    #                      'temp444_accuracy': 0,
+    #                      'temp555_accuracy': 0,
+    #                      'temp_all_all_all_accuracy': 0,
+    #                      "totalPoints": "0",
+    #                      "totalScore": "0",
+    #                      "totalCompleteness": "0",
+    #                      "totalAccuracy": "0"
+    #                     },
+    #                  'criteria': [],
+    #                  })
+    #
+    #             data_process[i]['metrics']['total'] += process_count
+    #
+    #             for k, process in enumerate(processes):
+    #                 #Считаю для оценки процессов(достаю Оценку процесса из бд и смотрю че там написано)
+    #                 temp_obj = get_object_or_404(ProcessAssessment, process_id=process, filling_id=fillings)
+    #                 z_assessment = get_object_or_404(ZAssessment, id=temp_obj.z_assessment_id)
+    #
+    #                 if z_assessment.label != 'Не проверен':
+    #                     data_process[i]['processes'][j]['metrics']['checked'] += 1
+    #                     data_process[i]['metrics']['checked'] += 1
+    #
+    #                 if z_assessment.label == 'Выполнил':
+    #                     data_process[i]['processes'][j]['metrics']['completed'] += 1
+    #                     data_process[i]['metrics']['completed'] += 1
+    #
+    #                 #Добавляю процесс:
+    #                 data_process[i]['processes'][j]['criteria'].append({
+    #                     'id': k + 1,
+    #                     'name': process.name,
+    #                     'yes': 'true' if z_assessment.label == 'Выполнил' else 'false' if z_assessment.label == 'Не выполнил' else '-',
+    #                     'metrics': {
+    #                         'temp1': 0,
+    #                         'temp2': 0,
+    #                         'temp3': 0,
+    #                         'temp4': 0,
+    #                         'temp5': 0,
+    #                         'temp_all': 0,
+    #                         'temp1_accuracy': 0,
+    #                         'temp2_accuracy': 0,
+    #                         'temp3_accuracy': 0,
+    #                         'temp4_accuracy': 0,
+    #                         'temp5_accuracy': 0,
+    #                         'temp_all_accuracy': 0,
+    #                         "score": "",
+    #                         "completeness": "",
+    #                         "accuracy": "",
+    #
+    #                         'temp11': 0,
+    #                         'temp22': 0,
+    #                         'temp33': 0,
+    #                         'temp44': 0,
+    #                         'temp55': 0,
+    #                         'temp_all_all': 0,
+    #                         'temp11_accuracy': 0,
+    #                         'temp22_accuracy': 0,
+    #                         'temp33_accuracy': 0,
+    #                         'temp44_accuracy': 0,
+    #                         'temp55_accuracy': 0,
+    #                         'temp_all_all_accuracy': 0,
+    #                         "incidentScore": "",
+    #                         "incidentCompleteness": "",
+    #                         "incidentAccuracy": "",
+    #
+    #                         'temp111': 0,
+    #                         'temp222': 0,
+    #                         'temp333': 0,
+    #                         'temp444': 0,
+    #                         'temp555': 0,
+    #                         'temp_all_all_all': 0,
+    #                         'temp111_accuracy': 0,
+    #                         'temp222_accuracy': 0,
+    #                         'temp333_accuracy': 0,
+    #                         'temp444_accuracy': 0,
+    #                         'temp555_accuracy': 0,
+    #                         'temp_all_all_all_accuracy': 0,
+    #                         "totalPoints": "",
+    #                         "totalScore": "",
+    #                         "totalCompleteness": "",
+    #                         "totalAccuracy": "100"
+    #                     },
+    #                 }
+    #                 )
+    #
+    #                 criterions = Criterion.objects.filter(process=process)
+    #                 incidents = Incident.objects.filter(process=process)
+    #
+    #                 for criterion in criterions:
+    #                     temp = CriterionAssessmentEntry.objects.filter(filling_id=fillings,
+    #                                                                    criterion_id=criterion).first()
+    #                     expert_rating_criterion = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
+    #                     expert_method_criterion = get_object_or_404(CheckMethod, id=temp.method_id)
+    #
+    #                     if expert_rating_criterion.label == 'Полностью':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] += 1
+    #                     elif expert_rating_criterion.label == 'С недостатками':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] += 1
+    #                     elif expert_rating_criterion.label == 'Допустимо':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] += 1
+    #                     elif expert_rating_criterion.label == 'Недопустимо':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'] += 1
+    #                     else:
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] += 1
+    #
+    #                     if expert_rating_criterion.label != 'Не проверен':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] += expert_rating_criterion.value
+    #
+    #                     if expert_method_criterion.label == 'Наблюдение':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] += 1
+    #                     elif expert_method_criterion.label == 'Практика':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] += 1
+    #                     elif expert_method_criterion.label == 'Тест':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] += 1
+    #                     elif expert_method_criterion.label == 'Опрос':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy'] += 1
+    #                     elif expert_method_criterion.label == 'Не ясен':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'] += 1
+    #
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] += expert_method_criterion.coefficient
+    #
+    #                 for incident in incidents:
+    #                     temp = IncidentAssessmentEntry.objects.filter(filling_id=fillings, incident_id=incident).first()
+    #                     expert_rating_incident = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
+    #                     expert_method_incident = get_object_or_404(CheckMethod, id=temp.method_id)
+    #
+    #                     if expert_rating_incident.label == 'Полностью':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11'] += 1
+    #                     elif expert_rating_incident.label == 'С недостатками':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22'] += 1
+    #                     elif expert_rating_incident.label == 'Допустимо':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33'] += 1
+    #                     elif expert_rating_incident.label == 'Недопустимо':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44'] += 1
+    #                     else:
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55'] += 1
+    #
+    #                     if expert_rating_incident.label != 'Не проверен':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all'] += expert_rating_incident.value
+    #
+    #                     if expert_method_incident.label == 'Наблюдение':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy'] += 1
+    #                     elif expert_method_incident.label == 'Практика':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy'] += 1
+    #                     elif expert_method_incident.label == 'Тест':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy'] += 1
+    #                     elif expert_method_incident.label == 'Опрос':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy'] += 1
+    #                     elif expert_method_incident.label == 'Не ясен':
+    #                         data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy'] += 1
+    #
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy'] += expert_method_incident.coefficient
+    #
+    #                 #теперь для процесса посчитаю всего:
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] =  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] +  data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
+    #
+    #                 # теперь для процесса посчитаю всего:
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy']
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all_accuracy'] = \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] + \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy']
+    #
+    #                 """""totalPoints": "4.25",
+    #                      "totalScore": "93.0",
+    #                      "totalCompleteness": "84.0",
+    #                      "totalAccuracy": "55.0"""
+    #
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['totalPoints'] = data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all']
+    #
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'totalScore'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['totalScore'] = '0'
+    #
+    #                 # Полнота
+    #                 if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555']), 1) * 100}'
+    #
+    #                 # Точность
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp222_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555_accuracy'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'totalAccuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['totalAccuracy'] = '0'
+    #
+    #
+    #                 #Тут считается критерии качества и инцинденты для процесса
+    #                 #Оценка
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3'] + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['score'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['score'] = '0'
+    #
+    #                 #Полнота
+    #                 if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['completeness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']), 1) * 100}'
+    #
+    #                 #Точность
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'accuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['accuracy'] = '0'
+    #
+    #                 # Оценка inc
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'incidentScore'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['incidentScore'] = '0'
+    #
+    #                 # Полнота inc
+    #                 if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55'] != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']), 1) * 100}'
+    #
+    #                 # Точность inc
+    #                 sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy'] +
+    #                             data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy'])
+    #                 if sum_temp != 0:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics'][
+    #                         'incidentAccuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #                 else:
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['incidentAccuracy'] = '0'
+    #
+    #                 #Тут данные по критериям качества/inc добвляем в подгруппу
+    #                 #оценка и полнота
+    #                 data_process[i]['processes'][j]['metrics']['temp1'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1']
+    #                 data_process[i]['processes'][j]['metrics']['temp2'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2']
+    #                 data_process[i]['processes'][j]['metrics']['temp3'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3']
+    #                 data_process[i]['processes'][j]['metrics']['temp4'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4']
+    #                 data_process[i]['processes'][j]['metrics']['temp5'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']
+    #                 data_process[i]['processes'][j]['metrics']['temp_all'] += data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all']
+    #
+    #                 #Точность
+    #                 data_process[i]['processes'][j]['metrics']['temp1_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp2_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp2_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp3_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp3_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp4_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp5_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy']
+    #
+    #                 # оценка и полнота inc
+    #                 data_process[i]['processes'][j]['metrics']['temp11'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11']
+    #                 data_process[i]['processes'][j]['metrics']['temp22'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22']
+    #                 data_process[i]['processes'][j]['metrics']['temp33'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33']
+    #                 data_process[i]['processes'][j]['metrics']['temp44'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44']
+    #                 data_process[i]['processes'][j]['metrics']['temp55'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']
+    #                 data_process[i]['processes'][j]['metrics']['temp_all_all'] += \
+    #                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all']
+    #
+    #                 # Точность inc
+    #                 data_process[i]['processes'][j]['metrics']['temp11_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp22_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp22_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp33_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp33_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp44_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp55_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy']
+    #                 data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy'] += \
+    #                     data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy']
+    #
+    #                 #оценка компетенций
+    #                 for competency in comp_list:
+    #                     for criterion in criterions:
+    #                         matrix_rating_criterion = Rating.objects.filter(criterion_id=criterion, competency_id=competency).first()
+    #
+    #                         temp = CriterionAssessmentEntry.objects.filter(filling_id=fillings, criterion_id=criterion).first()
+    #                         expert_rating_criterion = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
+    #                         expert_method_criterion = get_object_or_404(CheckMethod, id=temp.method_id)
+    #
+    #                         print(competency.name, ': ', matrix_rating_criterion.score * expert_rating_criterion.value, matrix_rating_criterion.score, expert_rating_criterion.value)
+    #
+    #                         # оценка
+    #                         dict_comp_sum[competency.name].append(matrix_rating_criterion.score)
+    #                         dict_comp[competency.name].append(matrix_rating_criterion.score * expert_rating_criterion.value)
+    #
+    #                         #полнота:
+    #                         print(criterion.text, matrix_rating_criterion.score, expert_rating_criterion.label)
+    #                         if matrix_rating_criterion.score != 0 and expert_rating_criterion.label != 'Не проверен':
+    #                             dict_comp_polnota[competency.name] += 1
+    #
+    #                             # точность:
+    #                             dict_comp_tochnost[competency.name].append(1 * expert_method_criterion.coefficient)
+    #
+    #                     for incident in incidents:
+    #                         matrix_rating_incident = IncidentRating.objects.filter(incident_id=incident, competency_id=competency).first()
+    #
+    #                         temp = IncidentAssessmentEntry.objects.filter(filling_id=fillings, incident_id=incident).first()
+    #                         expert_rating_incident = get_object_or_404(CriteriaAssessment, id=temp.assessment_id)
+    #                         expert_method_incident = get_object_or_404(CheckMethod, id=temp.method_id)
+    #
+    #                         # оценка
+    #                         dict_comp_sum[competency.name].append(matrix_rating_incident.score)
+    #                         dict_comp[competency.name].append(matrix_rating_incident.score * expert_rating_incident.value)
+    #
+    #                         # полнота:
+    #                         print(incident.description, matrix_rating_incident.score, expert_rating_incident.label)
+    #                         if matrix_rating_incident.score != 0 and expert_rating_incident.label != 'Не проверен':
+    #                             dict_comp_polnota[competency.name] += 1
+    #
+    #                             # точность:
+    #                             dict_comp_tochnost[competency.name].append(1 * expert_method_incident.coefficient)
+    #
+    #             #Это для Z-оценки в подгруппе
+    #             if data_process[i]['processes'][j]['metrics']['total'] != 0 and data_process[i]['processes'][j]['metrics']['checked'] != 0:
+    #                 data_process[i]['processes'][j]['metrics']['checkedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['checked'] / data_process[i]['processes'][j]['metrics']['total'], 1) * 100}'
+    #                 data_process[i]['processes'][j]['metrics']['completedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['completed'] / data_process[i]['processes'][j]['metrics']['checked'], 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['checkedPercent'] = '0'
+    #                 data_process[i]['processes'][j]['metrics']['completedPercent'] = '0'
+    #
+    #             # теперь для подгруппы посчитаю всего:
+    #             data_process[i]['processes'][j]['metrics']['temp111'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp1'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp11']
+    #             data_process[i]['processes'][j]['metrics']['temp222'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp2'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp22']
+    #             data_process[i]['processes'][j]['metrics']['temp333'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp3'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp33']
+    #             data_process[i]['processes'][j]['metrics']['temp444'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp4'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp44']
+    #             data_process[i]['processes'][j]['metrics']['temp555'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp5'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp55']
+    #             data_process[i]['processes'][j]['metrics']['temp_all_all_all'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp_all'] + \
+    #             data_process[i]['processes'][j]['metrics']['temp_all_all']
+    #
+    #             # теперь для процесса посчитаю всего:
+    #             data_process[i]['processes'][j]['metrics']['temp111_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp1_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp11_accuracy']
+    #             data_process[i]['processes'][j]['metrics']['temp222_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp2_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp22_accuracy']
+    #             data_process[i]['processes'][j]['metrics']['temp333_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp3_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp33_accuracy']
+    #             data_process[i]['processes'][j]['metrics']['temp444_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp4_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp44_accuracy']
+    #             data_process[i]['processes'][j]['metrics']['temp555_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp5_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp55_accuracy']
+    #             data_process[i]['processes'][j]['metrics']['temp_all_all_all_accuracy'] = \
+    #                 data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] + \
+    #                 data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy']
+    #
+    #             data_process[i]['processes'][j]['metrics']['totalPoints'] = \
+    #             data_process[i]['processes'][j]['metrics']['temp_all_all_all']
+    #
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp111'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp222'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp333'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp444'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'totalScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['totalScore'] = '0'
+    #
+    #             # Полнота
+    #             if sum_temp + data_process[i]['processes'][j]['metrics']['temp555'] != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp555']), 1) * 100}'
+    #
+    #             # Точность
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp111_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp222_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp333_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp444_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp555_accuracy'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'totalAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['totalAccuracy'] = '0'
+    #
+    #             #Это для критериев качества/inc в подгруппе
+    #             # (оценка)
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp1'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp2'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp3'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp4'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'qualityScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['qualityScore'] = '0'
+    #
+    #             #Полнота
+    #             if sum_temp + data_process[i]['processes'][j]['metrics']['temp5'] != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp5']), 1) * 100}'
+    #
+    #             #Точность
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp1_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp2_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp3_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp4_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp5_accuracy'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'qualityAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['qualityAccuracy'] = '0'
+    #
+    #             # (оценка) inc
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp11'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp22'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp33'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp44'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'incidentScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['incidentScore'] = '0'
+    #
+    #             # Полнота inc
+    #             if sum_temp + data_process[i]['processes'][j]['metrics']['temp55'] != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp55']), 1) * 100}'
+    #
+    #             # Точность inc
+    #             sum_temp = (data_process[i]['processes'][j]['metrics']['temp11_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp22_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp33_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp44_accuracy'] +
+    #                         data_process[i]['processes'][j]['metrics']['temp55_accuracy'])
+    #             if sum_temp != 0:
+    #                 data_process[i]['processes'][j]['metrics'][
+    #                     'incidentAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #             else:
+    #                 data_process[i]['processes'][j]['metrics']['incidentAccuracy'] = '0'
+    #
+    #
+    #             # Тут данные по критериям качества/inc добвляем в группу
+    #             data_process[i]['metrics']['temp1'] += data_process[i]['processes'][j]['metrics']['temp1']
+    #             data_process[i]['metrics']['temp2'] += data_process[i]['processes'][j]['metrics']['temp2']
+    #             data_process[i]['metrics']['temp3'] += data_process[i]['processes'][j]['metrics']['temp3']
+    #             data_process[i]['metrics']['temp4'] += data_process[i]['processes'][j]['metrics']['temp4']
+    #             data_process[i]['metrics']['temp5'] += data_process[i]['processes'][j]['metrics']['temp5']
+    #             data_process[i]['metrics']['temp_all'] += data_process[i]['processes'][j]['metrics']['temp_all']
+    #
+    #             data_process[i]['metrics']['temp1_accuracy'] += data_process[i]['processes'][j]['metrics']['temp1_accuracy']
+    #             data_process[i]['metrics']['temp2_accuracy'] += data_process[i]['processes'][j]['metrics']['temp2_accuracy']
+    #             data_process[i]['metrics']['temp3_accuracy'] += data_process[i]['processes'][j]['metrics']['temp3_accuracy']
+    #             data_process[i]['metrics']['temp4_accuracy'] += data_process[i]['processes'][j]['metrics']['temp4_accuracy']
+    #             data_process[i]['metrics']['temp5_accuracy'] += data_process[i]['processes'][j]['metrics']['temp5_accuracy']
+    #             data_process[i]['metrics']['temp_all_accuracy'] += data_process[i]['processes'][j]['metrics']['temp_all_accuracy']
+    #
+    #             data_process[i]['metrics']['temp11'] += data_process[i]['processes'][j]['metrics']['temp11']
+    #             data_process[i]['metrics']['temp22'] += data_process[i]['processes'][j]['metrics']['temp22']
+    #             data_process[i]['metrics']['temp33'] += data_process[i]['processes'][j]['metrics']['temp33']
+    #             data_process[i]['metrics']['temp44'] += data_process[i]['processes'][j]['metrics']['temp44']
+    #             data_process[i]['metrics']['temp55'] += data_process[i]['processes'][j]['metrics']['temp55']
+    #             data_process[i]['metrics']['temp_all_all'] += data_process[i]['processes'][j]['metrics']['temp_all_all']
+    #
+    #             data_process[i]['metrics']['temp11_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp11_accuracy']
+    #             data_process[i]['metrics']['temp22_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp22_accuracy']
+    #             data_process[i]['metrics']['temp33_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp33_accuracy']
+    #             data_process[i]['metrics']['temp44_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp44_accuracy']
+    #             data_process[i]['metrics']['temp55_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp55_accuracy']
+    #             data_process[i]['metrics']['temp_all_all_accuracy'] += data_process[i]['processes'][j]['metrics'][
+    #                 'temp_all_all_accuracy']
+    #
+    #         #Оценка Z в группе
+    #         if data_process[i]['metrics']['total'] != 0 and data_process[i]['metrics']['checked'] != 0:
+    #             data_process[i]['metrics']['checkedPercent'] = f'{round(data_process[i]['metrics']['checked']/data_process[i]['metrics']['total'], 1) * 100}'
+    #             data_process[i]['metrics']['completedPercent'] = f'{round(data_process[i]['metrics']['completed']/data_process[i]['metrics']['checked'], 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['checkedPercent'] = '0'
+    #             data_process[i]['metrics']['completedPercent'] = '0'
+    #
+    #         # теперь для группы посчитаю всего:
+    #         data_process[i]['metrics']['temp111'] = \
+    #             data_process[i]['metrics']['temp1'] + \
+    #             data_process[i]['metrics']['temp11']
+    #         data_process[i]['metrics']['temp222'] = \
+    #             data_process[i]['metrics']['temp2'] + \
+    #             data_process[i]['metrics']['temp22']
+    #         data_process[i]['metrics']['temp333'] = \
+    #             data_process[i]['metrics']['temp3'] + \
+    #             data_process[i]['metrics']['temp33']
+    #         data_process[i]['metrics']['temp444'] = \
+    #             data_process[i]['metrics']['temp4'] + \
+    #             data_process[i]['metrics']['temp44']
+    #         data_process[i]['metrics']['temp555'] = \
+    #             data_process[i]['metrics']['temp5'] + \
+    #             data_process[i]['metrics']['temp55']
+    #         data_process[i]['metrics']['temp_all_all_all'] = \
+    #             data_process[i]['metrics']['temp_all'] + \
+    #             data_process[i]['metrics']['temp_all_all']
+    #
+    #         data_process[i]['metrics']['temp111_accuracy'] = \
+    #             data_process[i]['metrics']['temp1_accuracy'] + \
+    #             data_process[i]['metrics']['temp11_accuracy']
+    #         data_process[i]['metrics']['temp222_accuracy'] = \
+    #             data_process[i]['metrics']['temp2_accuracy'] + \
+    #             data_process[i]['metrics']['temp22_accuracy']
+    #         data_process[i]['metrics']['temp333_accuracy'] = \
+    #             data_process[i]['metrics']['temp3_accuracy'] + \
+    #             data_process[i]['metrics']['temp33_accuracy']
+    #         data_process[i]['metrics']['temp444_accuracy'] = \
+    #             data_process[i]['metrics']['temp4_accuracy'] + \
+    #             data_process[i]['metrics']['temp44_accuracy']
+    #         data_process[i]['metrics']['temp555_accuracy'] = \
+    #             data_process[i]['metrics']['temp5_accuracy'] + \
+    #             data_process[i]['metrics']['temp55_accuracy']
+    #         data_process[i]['metrics']['temp_all_all_all_accuracy'] = \
+    #             data_process[i]['metrics']['temp_all_accuracy'] + \
+    #             data_process[i]['metrics']['temp_all_all_accuracy']
+    #
+    #         data_process[i]['metrics']['totalPoints'] = data_process[i]['metrics']['temp_all_all_all']
+    #
+    #         all_process_score['totalPoints'] +=  round(data_process[i]['metrics']['totalPoints'], 1)
+    #         all_process_score['temp111'] +=  data_process[i]['metrics']['temp111']
+    #         all_process_score['temp222'] +=  data_process[i]['metrics']['temp222']
+    #         all_process_score['temp333'] +=  data_process[i]['metrics']['temp333']
+    #         all_process_score['temp444'] +=  data_process[i]['metrics']['temp444']
+    #         all_process_score['temp555'] +=  data_process[i]['metrics']['temp555']
+    #         all_process_score['temp555_accuracy'] +=  data_process[i]['metrics']['temp555_accuracy']
+    #         all_process_score['temp444_accuracy'] +=  data_process[i]['metrics']['temp444_accuracy']
+    #         all_process_score['temp333_accuracy'] +=  data_process[i]['metrics']['temp333_accuracy']
+    #         all_process_score['temp222_accuracy'] +=  data_process[i]['metrics']['temp222_accuracy']
+    #         all_process_score['temp111_accuracy'] +=  data_process[i]['metrics']['temp111_accuracy']
+    #         all_process_score['temp_all_all_all_accuracy'] += data_process[i]['metrics']['temp_all_all_all_accuracy']
+    #
+    #         print(all_process_score)
+    #
+    #         sum_temp = (data_process[i]['metrics']['temp111'] +
+    #                     data_process[i]['metrics']['temp222'] +
+    #                     data_process[i]['metrics']['temp333'] +
+    #                     data_process[i]['metrics']['temp444'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'totalScore'] = f'{round(data_process[i]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['totalScore'] = '0'
+    #
+    #         # Полнота
+    #         if sum_temp + data_process[i]['metrics']['temp555'] != 0:
+    #             data_process[i]['metrics'][
+    #                 'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp555']), 1) * 100}'
+    #
+    #         # Точность
+    #         sum_temp = (data_process[i]['metrics']['temp111_accuracy'] +
+    #                     data_process[i]['metrics']['temp222_accuracy'] +
+    #                     data_process[i]['metrics']['temp333_accuracy'] +
+    #                     data_process[i]['metrics']['temp444_accuracy'] +
+    #                     data_process[i]['metrics']['temp555_accuracy'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'totalAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['totalAccuracy'] = '0'
+    #
+    #         # Это для критериев качества/inc(оценка) в группе
+    #         sum_temp = (data_process[i]['metrics']['temp1'] +
+    #                     data_process[i]['metrics']['temp2'] +
+    #                     data_process[i]['metrics']['temp3'] +
+    #                     data_process[i]['metrics']['temp4'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'qualityScore'] = f'{round(data_process[i]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['qualityScore'] = '0'
+    #
+    #         #полнота
+    #         if (sum_temp + data_process[i]['metrics']['temp5']) != 0:
+    #             data_process[i]['metrics'][
+    #                 'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp5']), 1) * 100}'
+    #
+    #         #Точность
+    #         sum_temp = (data_process[i]['metrics']['temp1_accuracy'] +
+    #                     data_process[i]['metrics']['temp2_accuracy'] +
+    #                     data_process[i]['metrics']['temp3_accuracy'] +
+    #                     data_process[i]['metrics']['temp4_accuracy'] +
+    #                     data_process[i]['metrics']['temp5_accuracy'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'qualityAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['qualityAccuracy'] = '0'
+    #
+    #         #score inc
+    #         sum_temp = (data_process[i]['metrics']['temp11'] +
+    #                     data_process[i]['metrics']['temp22'] +
+    #                     data_process[i]['metrics']['temp33'] +
+    #                     data_process[i]['metrics']['temp44'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'incidentScore'] = f'{round(data_process[i]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['incidentScore'] = '0'
+    #
+    #         # полнота
+    #         if sum_temp + data_process[i]['metrics']['temp55'] != 0:
+    #             data_process[i]['metrics'][
+    #                 'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp55']), 1) * 100}'
+    #
+    #         # Точность
+    #         sum_temp = (data_process[i]['metrics']['temp11_accuracy'] +
+    #                     data_process[i]['metrics']['temp22_accuracy'] +
+    #                     data_process[i]['metrics']['temp33_accuracy'] +
+    #                     data_process[i]['metrics']['temp44_accuracy'] +
+    #                     data_process[i]['metrics']['temp55_accuracy'])
+    #         if sum_temp != 0:
+    #             data_process[i]['metrics'][
+    #                 'incidentAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #         else:
+    #             data_process[i]['metrics']['incidentAccuracy'] = '0'
+    #
+    #     sum_temp = (all_process_score['temp111'] +
+    #                 all_process_score['temp222'] +
+    #                 all_process_score['temp333'] +
+    #                 all_process_score['temp444'])
+    #     if sum_temp != 0:
+    #         all_process_score[
+    #             'totalScore'] = f'{round(round(all_process_score['totalPoints'] / sum_temp, 1) * 100, 1)}'
+    #     else:
+    #         all_process_score['totalScore'] = '0'
+    #
+    #     # Полнота
+    #     if sum_temp + all_process_score['temp555'] != 0:
+    #         all_process_score[
+    #             'totalCompleteness'] = f'{round(round(sum_temp / (sum_temp + all_process_score['temp555']), 1) * 100, 1)}'
+    #
+    #     # Точность
+    #     sum_temp = (all_process_score['temp111_accuracy'] +
+    #                 all_process_score['temp222_accuracy'] +
+    #                 all_process_score['temp333_accuracy'] +
+    #                 all_process_score['temp444_accuracy'] +
+    #                 all_process_score['temp555_accuracy'])
+    #     if sum_temp != 0:
+    #         all_process_score['totalAccuracy'] = f'{round(all_process_score['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+    #     else:
+    #         all_process_score['totalAccuracy'] = '0'
+    #
+    # except Exception as e:
+    #     print(e)
+    #
+    # competencies_json = []
+    # sum_score = 0
+    # compl_sum = 0
+    # acc_sum = 0
+    #
+    # for i, competency in enumerate(comp_list):
+    #     competencies_json.append({'id': i + 1, 'name': competency.name})
+    #
+    #     if sum(dict_comp_sum[competency.name]) != 0:
+    #         competencies_json[i]['score'] = f'{round((sum(dict_comp[competency.name])/sum(dict_comp_sum[competency.name])) * 100, 1)}%'
+    #         sum_score += (sum(dict_comp[competency.name])/sum(dict_comp_sum[competency.name])) * 100
+    #     else:
+    #         competencies_json[i]['score'] = '0.0%'
     #
     #     if len(dict_comp_sum[competency.name]) != 0:
-    #
-    #         print(f'{competency.name} - {dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])}')
-    #
-    # print('Точность: ', dict_comp_polnota, dict_comp_tochnost)
-    # for competency in comp_list:
+    #         competencies_json[i]['completeness'] = f'{round((dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])) * 100, 1)}%'
+    #         compl_sum += (dict_comp_polnota[competency.name] / len(dict_comp_sum[competency.name])) * 100
+    #     else:
+    #         competencies_json[i]['completeness'] = '0.0%'
     #
     #     if dict_comp_polnota[competency.name] != 0:
-    #         print(f'{competency.name} - {sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name] }')
+    #         competencies_json[i]['accuracy'] = f'{round((sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name]) * 100, 1)}%'
+    #         acc_sum += (sum(dict_comp_tochnost[competency.name]) / dict_comp_polnota[competency.name]) * 100
+    #     else:
+    #         competencies_json[i]['accuracy'] = f'0.0%'
+    #
+    #
+    # processes_data = [
+    #         {
+    #             "id": 1,
+    #             "name": "1. ПОДГОТОВКА К РАБОТЕ",
+    #             "metrics": {
+    #                 # Z
+    #                 "total": 32,
+    #                 "checked": 6,
+    #                 "checkedPercent": "100.0",
+    #                 "completed": 5,
+    #                 "completedPercent": "83.3",
+    #
+    #                 # CriteriaQuality
+    #                 "qualityScore": "83.0",
+    #                 "qualityCompleteness": "93.0",
+    #                 "qualityAccuracy": "96.0",
+    #
+    #                 # Incident
+    #                 "incidentScore": "62.0",
+    #                 "incidentCompleteness": "92.0",
+    #                 "incidentAccuracy": "67.0",
+    #
+    #                 # Total
+    #                 "totalPoints": "4.25",
+    #                 "totalScore": "93.0",
+    #                 "totalCompleteness": "84.0",
+    #                 "totalAccuracy": "55.0"
+    #             },
+    #             "processes": [
+    #                 {
+    #                     "id": 1,
+    #                     "name": "Начало смены",
+    #                     "metrics": {
+    #                         #Z
+    #                         "total": 6,
+    #                         "checked": 6,
+    #                         "checkedPercent": "100.0",
+    #                         "completed": 5,
+    #                         "completedPercent": "83.3",
+    #
+    #                         #CriteriaQuality
+    #                         "qualityScore": "83.0",
+    #                         "qualityCompleteness": "93.0",
+    #                         "qualityAccuracy": "96.0",
+    #
+    #                         #Incident
+    #                         "incidentScore": "62.0",
+    #                         "incidentCompleteness": "92.0",
+    #                         "incidentAccuracy": "67.0",
+    #
+    #                         #Total
+    #                         "totalPoints": "4.25",
+    #                         "totalScore": "93.0",
+    #                         "totalCompleteness": "84.0",
+    #                         "totalAccuracy": "55.0"
+    #                     },
+    #                     "criteria": [
+    #                         {
+    #                             "id": 1,
+    #                             "name": "Прибыть на рабочее место (мастерская12312312312)",
+    #                             'yes': 'true',
+    #                             "metrics": {
+    #                                 "score": "96.0",
+    #                                 "completeness": "100.0",
+    #                                 "accuracy": "90.0",
+    #
+    #                                 "incidentScore": "75.0",
+    #                                 "incidentCompleteness": "100.0",
+    #                                 "incidentAccuracy": "60.0",
+    #
+    #                                 "totalPoints": "4.35",
+    #                                 "totalScore": "96.0",
+    #                                 "totalCompleteness": "100.0",
+    #                                 "totalAccuracy": "75.0"
+    #                             }
+    #                         },
+    #                         {
+    #                             "id": 2,
+    #                             "name": "Получить сменное задание",
+    #                             'yes': 'false',
+    #                             "metrics": {
+    #                                 "score": "70.0",
+    #                                 "completeness": "85.0",
+    #                                 "accuracy": "82.0",
+    #
+    #                                 "incidentScore": "50.0",
+    #                                 "incidentCompleteness": "85.0",
+    #                                 "incidentAccuracy": "60.0",
+    #
+    #                                 "totalPoints": "4.15",
+    #                                 "totalScore": "90.0",
+    #                                 "totalCompleteness": "68.0",
+    #                                 "totalAccuracy": "35.0"
+    #                             },},
+    #                             {
+    #                                 "id": 3,
+    #                                 "name": "Получить сменное задание",
+    #                                 'yes': 'true',
+    #                                 "metrics": {
+    #                                     "score": "70.0",
+    #                                     "completeness": "85.0",
+    #                                     "accuracy": "82.0",
+    #
+    #                                     "incidentScore": "50.0",
+    #                                     "incidentCompleteness": "85.0",
+    #                                     "incidentAccuracy": "60.0",
+    #
+    #                                     "totalPoints": "4.15",
+    #                                     "totalScore": "90.0",
+    #                                     "totalCompleteness": "68.0",
+    #                                     "totalAccuracy": "35.0"
+    #                                 }
+    #                             },
+    #                         {
+    #                             "id": 4,
+    #                             "name": "Получить сменное задание",
+    #                             'yes': 'false',
+    #                             "metrics": {
+    #                                 "score": "70.0",
+    #                                 "completeness": "85.0",
+    #                                 "accuracy": "82.0",
+    #
+    #                                 "incidentScore": "50.0",
+    #                                 "incidentCompleteness": "85.0",
+    #                                 "incidentAccuracy": "60.0",
+    #
+    #                                 "totalPoints": "4.15",
+    #                                 "totalScore": "90.0",
+    #                                 "totalCompleteness": "68.0",
+    #                                 "totalAccuracy": "35.0"
+    #                             },},
+    #                     ]
+    #                 }
+    #             ]
+    #         },
+    #         # ... другие группы процессов ...
+    #     ]
+    #
+    # processes_summary = {
+    #         "averagePoints": round(all_process_score['totalPoints'], 1),
+    #         "averageScore": all_process_score['totalScore'],
+    #         "averageCompleteness": all_process_score['totalCompleteness'],
+    #         "averageAccuracy": all_process_score['totalAccuracy'],
+    #         "scoreClass": "high",
+    #         "completenessClass": "medium",
+    #         "accuracyClass": "medium"
+    #     }
+    # print(all_process_score)
+    #
+    # print("wuirejew: ", competencies_json)
+    # CompetencyChecklistFilling.objects.update_or_create(
+    #     checklist=checklist,
+    #     filling=fillings,
+    #     defaults={'competency_json': competencies_json}
+    # )
 
-        # Пример данных процессов (в реальном коде вы бы получали их из базы данных)
-    processes_data = [
-            {
-                "id": 1,
-                "name": "1. ПОДГОТОВКА К РАБОТЕ",
-                "metrics": {
-                    # Z
-                    "total": 32,
-                    "checked": 6,
-                    "checkedPercent": "100.0",
-                    "completed": 5,
-                    "completedPercent": "83.3",
-
-                    # CriteriaQuality
-                    "qualityScore": "83.0",
-                    "qualityCompleteness": "93.0",
-                    "qualityAccuracy": "96.0",
-
-                    # Incident
-                    "incidentScore": "62.0",
-                    "incidentCompleteness": "92.0",
-                    "incidentAccuracy": "67.0",
-
-                    # Total
-                    "totalPoints": "4.25",
-                    "totalScore": "93.0",
-                    "totalCompleteness": "84.0",
-                    "totalAccuracy": "55.0"
-                },
-                "processes": [
-                    {
-                        "id": 1,
-                        "name": "Начало смены",
-                        "metrics": {
-                            #Z
-                            "total": 6,
-                            "checked": 6,
-                            "checkedPercent": "100.0",
-                            "completed": 5,
-                            "completedPercent": "83.3",
-
-                            #CriteriaQuality
-                            "qualityScore": "83.0",
-                            "qualityCompleteness": "93.0",
-                            "qualityAccuracy": "96.0",
-
-                            #Incident
-                            "incidentScore": "62.0",
-                            "incidentCompleteness": "92.0",
-                            "incidentAccuracy": "67.0",
-
-                            #Total
-                            "totalPoints": "4.25",
-                            "totalScore": "93.0",
-                            "totalCompleteness": "84.0",
-                            "totalAccuracy": "55.0"
-                        },
-                        "criteria": [
-                            {
-                                "id": 1,
-                                "name": "Прибыть на рабочее место (мастерская12312312312)",
-                                'yes': 'true',
-                                "metrics": {
-                                    "score": "96.0",
-                                    "completeness": "100.0",
-                                    "accuracy": "90.0",
-
-                                    "incidentScore": "75.0",
-                                    "incidentCompleteness": "100.0",
-                                    "incidentAccuracy": "60.0",
-
-                                    "totalPoints": "4.35",
-                                    "totalScore": "96.0",
-                                    "totalCompleteness": "100.0",
-                                    "totalAccuracy": "75.0"
-                                }
-                            },
-                            {
-                                "id": 2,
-                                "name": "Получить сменное задание",
-                                'yes': 'false',
-                                "metrics": {
-                                    "score": "70.0",
-                                    "completeness": "85.0",
-                                    "accuracy": "82.0",
-
-                                    "incidentScore": "50.0",
-                                    "incidentCompleteness": "85.0",
-                                    "incidentAccuracy": "60.0",
-
-                                    "totalPoints": "4.15",
-                                    "totalScore": "90.0",
-                                    "totalCompleteness": "68.0",
-                                    "totalAccuracy": "35.0"
-                                },},
-                                {
-                                    "id": 3,
-                                    "name": "Получить сменное задание",
-                                    'yes': 'true',
-                                    "metrics": {
-                                        "score": "70.0",
-                                        "completeness": "85.0",
-                                        "accuracy": "82.0",
-
-                                        "incidentScore": "50.0",
-                                        "incidentCompleteness": "85.0",
-                                        "incidentAccuracy": "60.0",
-
-                                        "totalPoints": "4.15",
-                                        "totalScore": "90.0",
-                                        "totalCompleteness": "68.0",
-                                        "totalAccuracy": "35.0"
-                                    }
-                                },
-                            {
-                                "id": 4,
-                                "name": "Получить сменное задание",
-                                'yes': 'false',
-                                "metrics": {
-                                    "score": "70.0",
-                                    "completeness": "85.0",
-                                    "accuracy": "82.0",
-
-                                    "incidentScore": "50.0",
-                                    "incidentCompleteness": "85.0",
-                                    "incidentAccuracy": "60.0",
-
-                                    "totalPoints": "4.15",
-                                    "totalScore": "90.0",
-                                    "totalCompleteness": "68.0",
-                                    "totalAccuracy": "35.0"
-                                },},
-                        ]
-                    }
-                ]
-            },
-            # ... другие группы процессов ...
-        ]
-
-    processes_summary = {
-            "averagePoints": round(all_process_score['totalPoints'], 1),
-            "averageScore": all_process_score['totalScore'],
-            "averageCompleteness": all_process_score['totalCompleteness'],
-            "averageAccuracy": all_process_score['totalAccuracy'],
-            "scoreClass": "high",
-            "completenessClass": "medium",
-            "accuracyClass": "medium"
-        }
-    print(all_process_score)
-
+    results = get_object_or_404(ResultsChecklistFilling, filling=fillings)
 
     return render(request, 'result_checklist.html', {
         'checklist': checklist,
         'fillings': fillings,
         'menu_items': menu_items,
-        'competencies_json': json.dumps(competencies_json),
-        'competencies_summary_json': json.dumps({
-            'averageScore': f'{round(sum_score/len(competencies_json), 1)}',
-            'averageCompleteness': f'{round(compl_sum/len(competencies_json), 1)}',
-            'averageAccuracy': f'{round(acc_sum/len(competencies_json), 1)}'
-        }),
-        'processes_data': json.dumps(data_process),
-        'processes_summary': json.dumps(processes_summary)
+        'competencies_json': json.dumps(results.competencies_json),
+        'competencies_summary_json': json.dumps(results.competencies_summary_json),
+        'processes_data': json.dumps(results.processes_data),
+        'processes_summary': json.dumps(results.processes_summary)
     })
 
 def checklist_delete(request, checklist_id):
@@ -1912,3 +2826,60 @@ def delete_job_title(request, job_title_id):
     company_id = job_title.company.id  # если нужно вернуться к компании
     job_title.delete()
     return redirect('company_detail', company_id=company_id)
+
+def competency_results(request, checklist_id):
+    user_role = request.user.role
+    menu_items = []
+
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+    if user_role == 'methodist':
+        if checklist.company_id:
+            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
+    elif user_role == 'expert':
+        if checklist.company_id:
+            menu_items = [{'name': 'Предприятие', 'href': f'/companies/{checklist.company_id}/'}]
+    else:
+        menu_items = ROLE_MENU.get(user_role, [])
+
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+
+    competency_fillings = CompetencyChecklistFilling.objects.filter(
+        checklist=checklist,
+    )
+
+    formatted_data = []
+    average_competency = {}
+    count = 0
+    for node in competency_fillings:
+        competency_list = node.competency_json
+
+        for competency in competency_list:
+            if competency['name'] in average_competency:
+                average_competency[competency['name']]['score'] += float(competency['score'].strip('%'))
+                average_competency[competency['name']]['completeness'] += float(competency['completeness'].strip('%'))
+                average_competency[competency['name']]['accuracy'] += float(competency['accuracy'].strip('%'))
+            else:
+                average_competency[competency['name']] = {'score': float(competency['score'].strip('%')), 'completeness': float(competency['completeness'].strip('%')), 'accuracy': float(competency['accuracy'].strip('%'))}
+
+        count += 1
+
+    for key, value in average_competency.items():
+        average_score = value['score'] / count
+        average_completeness = value['completeness'] / count
+        average_accuracy = value['accuracy'] / count
+        formatted_data.append({
+            'name': key,
+            'averageScore': round(average_score, 1),
+            'averageAccuracy': round(average_completeness, 1),
+            'averageCompleteness': round(average_accuracy, 1),
+            'count': count,
+        })
+
+    competency_data_json = json.dumps(formatted_data)
+
+    return render(request, 'competency_results.html', {
+        'menu_items': menu_items,
+        'checklist': checklist,
+        'competency_data': formatted_data,
+        'competency_data_json': competency_data_json
+})

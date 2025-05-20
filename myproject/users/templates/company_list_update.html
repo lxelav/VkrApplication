@@ -6,35 +6,41 @@
   <h1>Список предприятий</h1>
 
   <div class="scroll-area">
-    {% for company in companies %}
-      <div class="card">
-        <div class="company-header" onclick="toggleDetails('{{ company.id }}')">
-          <div class="flex justify-between items-center">
-            <h3>{{ company.name }}</h3>
-            <span class="toggle-icon" id="icon-{{ company.id }}">▼</span>
-          </div>
+    {% if companies %}
+        {% for company in companies %}
+        <div class="card">
+            <div class="company-header" onclick="toggleDetails('{{ company.id }}')">
+            <div class="flex justify-between items-center">
+                <h3>{{ company.name }}</h3>
+                <span class="toggle-icon" id="icon-{{ company.id }}">▼</span>
+            </div>
+            </div>
+            <div class="company-details" id="details-{{ company.id }}" style="display:none; margin-top: 15px;">
+            <div class="form-group">
+                <label>Технический руководитель</label>
+                <div class="detail-value">{{ company.tech_lead.username }}</div>
+            </div>
+            <div class="form-group">
+                <label>Описание</label>
+                <div class="detail-value">{{ company.description|default:"Нет описания" }}</div>
+            </div>
+            <div class="form-group">
+                <label>Создано</label>
+                <div class="detail-value">{{ company.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'company_detail' company.id %}" class="btn btn-primary">
+                Перейти <span class="ml-2">→</span>
+                </a>
+            </div>
+            </div>
         </div>
-        <div class="company-details" id="details-{{ company.id }}" style="display:none; margin-top: 15px;">
-          <div class="form-group">
-            <label>Технический руководитель</label>
-            <div class="detail-value">{{ company.tech_lead.username }}</div>
-          </div>
-          <div class="form-group">
-            <label>Описание</label>
-            <div class="detail-value">{{ company.description|default:"Нет описания" }}</div>
-          </div>
-          <div class="form-group">
-            <label>Создано</label>
-            <div class="detail-value">{{ company.created_at|date:"d.m.Y H:i" }}</div>
-          </div>
-          <div class="mt-4">
-            <a href="{% url 'company_detail' company.id %}" class="btn btn-primary">
-              Перейти <span class="ml-2">→</span>
-            </a>
-          </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-message">
+            У вас нет предприятий
         </div>
-      </div>
-    {% endfor %}
+    {% endif %}
   </div>
   {% if user_role == 'admin' %}
   <div class="actions">

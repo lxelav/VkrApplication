@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Общие результаты по компетенциям</title>
+    <style>
+    :root {
+            --primary-color: #3b82f6;
+            --primary-light: #93c5fd;
+            --gray-light: #f3f4f6;
+            --gray-medium: #9ca3af;
+            --gray-dark: #4b5563;
+            --success-color: #10b981;
+            --success-light: #d1fae5;
+            --warning-color: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger-color: #ef4444;
+            --danger-light: #fee2e2;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Шапка чек-листа */
+        .checklist-header {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .checklist-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+
+        .action-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-light);
+        }
+
+        .btn-edit:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .btn-delete {
+            background-color: white;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-light);
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-light);
+        }
+
+        .btn-evaluate {
+            background-color: white;
+            color: var(--success-color);
+            border: 1px solid var(--success-light);
+        }
+
+        .btn-evaluate:hover {
+            background-color: var(--success-light);
+        }
+
+        /* Секция опросов */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .survey-group {
+            margin-bottom: 24px;
+        }
+
+        .survey-status {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-completed {
+            background-color: var(--success-color);
+        }
+
+        .status-in-progress {
+            background-color: var(--warning-color);
+        }
+
+        .surveys-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .survey-card {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 16px;
+            border: 1px solid var(--gray-light);
+            transition: transform 0.2s ease;
+        }
+
+        .survey-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .survey-person {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .survey-date {
+            color: var(--gray-medium);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .survey-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .survey-btn {
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .btn-results {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-results:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-continue {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .btn-continue:hover {
+            background-color: #d97706;
+        }
+
+        .btn-edit-survey {
+            background-color: var(--gray-light);
+            color: var(--gray-dark);
+        }
+
+        .btn-edit-survey:hover {
+            background-color: var(--gray-medium);
+            color: white;
+        }
+
+        .btn-delete-survey {
+            background-color: var(--danger-light);
+            color: var(--danger-color);
+        }
+
+        .btn-delete-survey:hover {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .action-buttons {
+                position: static;
+                margin-top: 16px;
+                margin-bottom: 16px;
+            }
+
+            .surveys-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .survey-actions {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Additional styles for the competency results page */
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+        
+        .competency-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .competency-table th, .competency-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .competency-table th {
+            background-color: var(--gray-light);
+            font-weight: 600;
+        }
+        
+        .competency-score {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+    <!-- Include Chart.js for the graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="card checklist-header">
+            <h1 class="checklist-title">Общие результаты по компетенциям: {{ checklist.title }}</h1>
+            <div class="action-buttons">
+                <button class="btn btn-edit" onclick="window.location.href='{% url 'checklist_detail' checklist.id %}'">
+                    ← Вернуться к чек-листу
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="section-title">Средние оценки по компетенциям</h2>
+            
+            {% if competency_data %}
+                <div class="chart-container">
+
+                    <canvas id="competencyChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+
+                    <canvas id="completenessChart"></canvas>
+                </div>
+
+                
+                <table class="competency-table">
+                    <thead>
+                        <tr>
+                            <th>Компетенция</th>
+                            <th>Средняя оценка</th>
+                            <th>Средняя полнота</th>
+                            <th>Средняя точность</th>
+                            <th>Количество оценок</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comp in competency_data %}
+                        <tr>
+                            <td>{{ comp.name }}</td>
+                            <td class="competency-score">{{ comp.averageScore|floatformat:1 }}</td>
+                            <td class="competency-score">{{ comp.averageAccuracy|floatformat:1 }}</td>
+                            <td class="competency-score">{{ comp.averageCompleteness|floatformat:1 }}</td>
+                            <td>{{ comp.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Нет данных для отображения. Необходимо завершить хотя бы одну оценку.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if competency_data %}
+    <script>
+        // Create the chart using Chart.js
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('competencyChart').getContext('2d');
+            const ctx1 = document.getElementById('accuracyChart').getContext('2d');
+            const ctx2 = document.getElementById('completenessChart').getContext('2d');
+
+            // Sort data by average score in ascending order
+            const sortedData = {{ competency_data_json|safe }};
+            sortedData.sort((a, b) => a.averageScore - b.averageScore);
+
+            const scoreSorted = [...sortedData].sort((a, b) => a.averageScore - b.averageScore);
+            const accuracySorted = [...sortedData].sort((a, b) => a.averageAccuracy - b.averageAccuracy);
+            const completenessSorted = [...sortedData].sort((a, b) => a.averageCompleteness - b.averageCompleteness);
+
+            
+            const labels = scoreSorted.map(item =>
+            item.name.length > 23 ? item.name.substring(0, 23) + '...' : item.name);
+            const scores = scoreSorted.map(item => item.averageScore);
+
+            const labels_accuracy = accuracySorted.map(item =>
+            item.name.length > 23 ? item.name.substring(0, 23) + '...' : item.name);
+            const accuracy = accuracySorted.map(item => item.averageAccuracy);
+
+            const labels_completeness = completenessSorted.map(item =>
+            item.name.length > 23 ? item.name.substring(0, 23) + '...' : item.name);
+            const completeness = completenessSorted.map(item => item.averageCompleteness);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Средняя оценка',
+                        data: scores,
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#2563eb',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Средняя оценка'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Компетенции'
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels_accuracy,
+                    datasets: [{
+                        label: 'Средняя полнота',
+                        data: accuracy,
+                        backgroundColor: '#10b981',
+                        borderColor: '#059669',
+
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Средняя полнота'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Компетенции'
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels_completeness,
+                    datasets: [{
+                        label: 'Средняя точность',
+                        data: completeness,
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#d97706',
+
+
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Средняя точность'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Компетенции'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    {% endif %}
+</body>
+{% endblock %}
