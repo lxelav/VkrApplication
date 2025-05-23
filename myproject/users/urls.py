@@ -40,5 +40,4 @@ urlpatterns = [
 
     path('job_title/<int:job_title_id>/delete/', delete_job_title, name='delete_job_title'),
     path('checklist/<int:checklist_id>/competency-results/', competency_results, name='competency_results'),
-
 ]

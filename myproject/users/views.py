@@ -60,9 +60,13 @@ def dashboard(request):
     if user_role == 'methodist':
         if company:
             menu_items = [{'name': 'Предприятие', 'href': f'/companies/{company.id}/'}]
+        else:
+            menu_items = [{'name': 'Предприятие еще не назначено', 'href': f'/dashboard'}]
     elif user_role == 'expert':
         if company:
             menu_items = [{'name': 'Предприятие', 'href': f'/companies/{company.id}/'}]
+        else:
+            menu_items = [{'name': 'Предприятие еще не назначено', 'href': f'/dashboard'}]
     else:
         menu_items = ROLE_MENU.get(user_role, [])
 
@@ -1061,15 +1065,14 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp333'] +
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp444'])
                     if sum_temp != 0:
-                        data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'totalScore'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+                        data_process[i]['processes'][j]['criteria'][k]['metrics']['totalScore'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['totalScore'] = '0'
 
                     # Полнота
                     if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555'] != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555']), 1) * 100}'
+                            'totalCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555']), 1) * 100}"
 
                     # Точность
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp111_accuracy'] +
@@ -1079,7 +1082,7 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp555_accuracy'])
                     if sum_temp != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'totalAccuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+                            'totalAccuracy'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['totalAccuracy'] = '0'
 
@@ -1091,14 +1094,14 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp4'])
                     if sum_temp != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'score'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+                            'score'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['score'] = '0'
 
                     # Полнота
                     if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5'] != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'completeness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']), 1) * 100}'
+                            'completeness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5']), 1) * 100}"
 
                     # Точность
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp1_accuracy'] +
@@ -1108,7 +1111,7 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp5_accuracy'])
                     if sum_temp != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'accuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+                            'accuracy'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['accuracy'] = '0'
 
@@ -1119,14 +1122,14 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp44'])
                     if sum_temp != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'incidentScore'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+                            'incidentScore'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['incidentScore'] = '0'
 
                     # Полнота inc
                     if sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55'] != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']), 1) * 100}'
+                            'incidentCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55']), 1) * 100}"
 
                     # Точность inc
                     sum_temp = (data_process[i]['processes'][j]['criteria'][k]['metrics']['temp11_accuracy'] +
@@ -1136,7 +1139,7 @@ def calculate_checklist_results(filling, checklist):
                                 data_process[i]['processes'][j]['criteria'][k]['metrics']['temp55_accuracy'])
                     if sum_temp != 0:
                         data_process[i]['processes'][j]['criteria'][k]['metrics'][
-                            'incidentAccuracy'] = f'{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+                            'incidentAccuracy'] = f"{round(data_process[i]['processes'][j]['criteria'][k]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}"
                     else:
                         data_process[i]['processes'][j]['criteria'][k]['metrics']['incidentAccuracy'] = '0'
 
@@ -1250,9 +1253,9 @@ def calculate_checklist_results(filling, checklist):
                 if data_process[i]['processes'][j]['metrics']['total'] != 0 and \
                         data_process[i]['processes'][j]['metrics']['checked'] != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'checkedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['checked'] / data_process[i]['processes'][j]['metrics']['total'], 1) * 100}'
+                        'checkedPercent'] = f"{round(data_process[i]['processes'][j]['metrics']['checked'] / data_process[i]['processes'][j]['metrics']['total'], 1) * 100}"
                     data_process[i]['processes'][j]['metrics'][
-                        'completedPercent'] = f'{round(data_process[i]['processes'][j]['metrics']['completed'] / data_process[i]['processes'][j]['metrics']['checked'], 1) * 100}'
+                        'completedPercent'] = f"{round(data_process[i]['processes'][j]['metrics']['completed'] / data_process[i]['processes'][j]['metrics']['checked'], 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['checkedPercent'] = '0'
                     data_process[i]['processes'][j]['metrics']['completedPercent'] = '0'
@@ -1306,14 +1309,14 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp444'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'totalScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+                        'totalScore'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['totalScore'] = '0'
 
                 # Полнота
                 if sum_temp + data_process[i]['processes'][j]['metrics']['temp555'] != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp555']), 1) * 100}'
+                        'totalCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp555']), 1) * 100}"
 
                 # Точность
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp111_accuracy'] +
@@ -1323,7 +1326,7 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp555_accuracy'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'totalAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+                        'totalAccuracy'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['totalAccuracy'] = '0'
 
@@ -1335,14 +1338,14 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp4'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'qualityScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+                        'qualityScore'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['qualityScore'] = '0'
 
                 # Полнота
                 if sum_temp + data_process[i]['processes'][j]['metrics']['temp5'] != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp5']), 1) * 100}'
+                        'qualityCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp5']), 1) * 100}"
 
                 # Точность
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp1_accuracy'] +
@@ -1352,7 +1355,7 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp5_accuracy'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'qualityAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+                        'qualityAccuracy'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['qualityAccuracy'] = '0'
 
@@ -1363,14 +1366,14 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp44'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'incidentScore'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+                        'incidentScore'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all_all'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['incidentScore'] = '0'
 
                 # Полнота inc
                 if sum_temp + data_process[i]['processes'][j]['metrics']['temp55'] != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp55']), 1) * 100}'
+                        'incidentCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['processes'][j]['metrics']['temp55']), 1) * 100}"
 
                 # Точность inc
                 sum_temp = (data_process[i]['processes'][j]['metrics']['temp11_accuracy'] +
@@ -1380,7 +1383,7 @@ def calculate_checklist_results(filling, checklist):
                             data_process[i]['processes'][j]['metrics']['temp55_accuracy'])
                 if sum_temp != 0:
                     data_process[i]['processes'][j]['metrics'][
-                        'incidentAccuracy'] = f'{round(data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+                        'incidentAccuracy'] = f"{round(data_process[i]['processes'][j]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}"
                 else:
                     data_process[i]['processes'][j]['metrics']['incidentAccuracy'] = '0'
 
@@ -1428,9 +1431,9 @@ def calculate_checklist_results(filling, checklist):
             # Оценка Z в группе
             if data_process[i]['metrics']['total'] != 0 and data_process[i]['metrics']['checked'] != 0:
                 data_process[i]['metrics'][
-                    'checkedPercent'] = f'{round(data_process[i]['metrics']['checked'] / data_process[i]['metrics']['total'], 1) * 100}'
+                    'checkedPercent'] = f"{round(data_process[i]['metrics']['checked'] / data_process[i]['metrics']['total'], 1) * 100}"
                 data_process[i]['metrics'][
-                    'completedPercent'] = f'{round(data_process[i]['metrics']['completed'] / data_process[i]['metrics']['checked'], 1) * 100}'
+                    'completedPercent'] = f"{round(data_process[i]['metrics']['completed'] / data_process[i]['metrics']['checked'], 1) * 100}"
             else:
                 data_process[i]['metrics']['checkedPercent'] = '0'
                 data_process[i]['metrics']['completedPercent'] = '0'
@@ -1495,14 +1498,14 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp444'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'totalScore'] = f'{round(data_process[i]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}'
+                    'totalScore'] = f"{round(data_process[i]['metrics']['temp_all_all_all'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['totalScore'] = '0'
 
             # Полнота
             if sum_temp + data_process[i]['metrics']['temp555'] != 0:
                 data_process[i]['metrics'][
-                    'totalCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp555']), 1) * 100}'
+                    'totalCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp555']), 1) * 100}"
 
             # Точность
             sum_temp = (data_process[i]['metrics']['temp111_accuracy'] +
@@ -1512,7 +1515,7 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp555_accuracy'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'totalAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+                    'totalAccuracy'] = f"{round(data_process[i]['metrics']['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['totalAccuracy'] = '0'
 
@@ -1523,14 +1526,14 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp4'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'qualityScore'] = f'{round(data_process[i]['metrics']['temp_all'] / sum_temp, 1) * 100}'
+                    'qualityScore'] = f"{round(data_process[i]['metrics']['temp_all'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['qualityScore'] = '0'
 
             # полнота
             if (sum_temp + data_process[i]['metrics']['temp5']) != 0:
                 data_process[i]['metrics'][
-                    'qualityCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp5']), 1) * 100}'
+                    'qualityCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp5']), 1) * 100}"
 
             # Точность
             sum_temp = (data_process[i]['metrics']['temp1_accuracy'] +
@@ -1540,7 +1543,7 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp5_accuracy'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'qualityAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}'
+                    'qualityAccuracy'] = f"{round(data_process[i]['metrics']['temp_all_accuracy'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['qualityAccuracy'] = '0'
 
@@ -1551,14 +1554,14 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp44'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'incidentScore'] = f'{round(data_process[i]['metrics']['temp_all_all'] / sum_temp, 1) * 100}'
+                    'incidentScore'] = f"{round(data_process[i]['metrics']['temp_all_all'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['incidentScore'] = '0'
 
             # полнота
             if sum_temp + data_process[i]['metrics']['temp55'] != 0:
                 data_process[i]['metrics'][
-                    'incidentCompleteness'] = f'{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp55']), 1) * 100}'
+                    'incidentCompleteness'] = f"{round(sum_temp / (sum_temp + data_process[i]['metrics']['temp55']), 1) * 100}"
 
             # Точность
             sum_temp = (data_process[i]['metrics']['temp11_accuracy'] +
@@ -1568,7 +1571,7 @@ def calculate_checklist_results(filling, checklist):
                         data_process[i]['metrics']['temp55_accuracy'])
             if sum_temp != 0:
                 data_process[i]['metrics'][
-                    'incidentAccuracy'] = f'{round(data_process[i]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}'
+                    'incidentAccuracy'] = f"{round(data_process[i]['metrics']['temp_all_all_accuracy'] / sum_temp, 1) * 100}"
             else:
                 data_process[i]['metrics']['incidentAccuracy'] = '0'
 
@@ -1578,14 +1581,14 @@ def calculate_checklist_results(filling, checklist):
                     all_process_score['temp444'])
         if sum_temp != 0:
             all_process_score[
-                'totalScore'] = f'{round(round(all_process_score['totalPoints'] / sum_temp, 1) * 100, 1)}'
+                'totalScore'] = f"{round(round(all_process_score['totalPoints'] / sum_temp, 1) * 100, 1)}"
         else:
             all_process_score['totalScore'] = '0'
 
         # Полнота
         if sum_temp + all_process_score['temp555'] != 0:
             all_process_score[
-                'totalCompleteness'] = f'{round(round(sum_temp / (sum_temp + all_process_score['temp555']), 1) * 100, 1)}'
+                'totalCompleteness'] = f"{round(round(sum_temp / (sum_temp + all_process_score['temp555']), 1) * 100, 1)}"
 
         # Точность
         sum_temp = (all_process_score['temp111_accuracy'] +
@@ -1595,7 +1598,7 @@ def calculate_checklist_results(filling, checklist):
                     all_process_score['temp555_accuracy'])
         if sum_temp != 0:
             all_process_score[
-                'totalAccuracy'] = f'{round(all_process_score['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}'
+                'totalAccuracy'] = f"{round(all_process_score['temp_all_all_all_accuracy'] / sum_temp, 1) * 100}"
         else:
             all_process_score['totalAccuracy'] = '0'
 
@@ -1612,7 +1615,7 @@ def calculate_checklist_results(filling, checklist):
 
         if sum(dict_comp_sum[competency.name]) != 0:
             competencies_json[i][
-                'score'] = f'{round((sum(dict_comp[competency.name]) / sum(dict_comp_sum[competency.name])) * 100, 1)}%'
+                'score'] = f"{round((sum(dict_comp[competency.name]) / sum(dict_comp_sum[competency.name])) * 100, 1)}%"
             sum_score += (sum(dict_comp[competency.name]) / sum(dict_comp_sum[competency.name])) * 100
         else:
             competencies_json[i]['score'] = '0.0%'
